@@ -1,0 +1,17 @@
+# bluesky_snowbot dependencies
+# Install with: pip install -r requirements.txt
+
+# Core
+requests>=2.31.0
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# Location resolution
+geopy>=2.4.0             # resort name → lat/lon via Nominatim fallback
+
+# Bluesky (AT Protocol)
+atproto>=0.0.46          # official Bluesky Python SDK
+
+# Testing
+pytest>=7.4.0
+pytest-mock>=3.12.0

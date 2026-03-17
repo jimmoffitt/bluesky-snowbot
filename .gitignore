@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment / secrets
+.local.env
+*.env
+
+# Data / runtime
+data/
+logs/
+inbox/archive/
+inbox/errors/
+*.db
+*.db-shm
+*.db-wal
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
