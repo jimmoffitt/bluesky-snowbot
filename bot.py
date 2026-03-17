@@ -65,6 +65,7 @@ class SnowBot:
         self._snow      = SnowService(
             db=self._db,
             cache_ttl_minutes=settings.snow_cache_ttl_minutes,
+            snocountry_key=settings.snocountry_key,
         )
 
         self._alert_channels: list[AlertChannel] = []

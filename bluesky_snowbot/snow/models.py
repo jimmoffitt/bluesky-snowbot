@@ -21,11 +21,16 @@ class ResortLocation:
     state: str          # Two-letter state/province code, e.g. "CO"
     country: str = "US"
     elevation_m: Optional[float] = None
+    snocountry_id: Optional[int] = None   # SnoCountry numeric resort ID
 
 
 @dataclass
 class SnowDepthReport:
-    """Current and recent snowfall data."""
+    """
+    Snow depth and accumulation data from Open-Meteo.
+    Used as fallback when SnoCountry data is unavailable.
+    All values in cm.
+    """
     depth_cm: float           # Current total snow depth on ground
     new_24h_cm: float         # Snowfall in the last 24 hours
     new_48h_cm: float         # Snowfall in the last 48 hours
@@ -33,8 +38,66 @@ class SnowDepthReport:
 
 
 @dataclass
+class ResortOperations:
+    """
+    Resort-reported conditions from SnoCountry.
+    All depth/snowfall values stored in cm (converted from inches).
+    String fields (lastSnowFallAmount, etc.) may contain ranges like "8 - 12"
+    and are kept as-is for display.
+    """
+    operating_status: str                    # "Open", "Closed", "Opening Soon", etc.
+    resort_status_code: Optional[int] = None
+
+    # Base depth (resort-reported, cm)
+    base_depth_min_cm: Optional[float] = None
+    base_depth_max_cm: Optional[float] = None
+
+    # New snow (resort-reported, cm)
+    new_snow_24h_min_cm: Optional[float] = None
+    new_snow_24h_max_cm: Optional[float] = None
+    snow_48h_cm: Optional[float] = None
+    season_total_cm: Optional[float] = None
+
+    # Last reported snowfall (kept as strings — may be ranges)
+    last_snowfall_date: Optional[str] = None
+    last_snowfall_amount: Optional[str] = None   # e.g. "8 - 12 inches"
+    prev_snowfall_date: Optional[str] = None
+    prev_snowfall_amount: Optional[str] = None
+
+    # Snowfall forecast (resort-provided strings, inches)
+    predicted_snow_24h: Optional[str] = None
+    predicted_snow_48h: Optional[str] = None
+    predicted_snow_72h: Optional[str] = None
+
+    # Lifts and trails
+    open_lifts: Optional[int] = None
+    total_lifts: Optional[int] = None
+    open_trails: Optional[int] = None
+    total_trails: Optional[int] = None
+    open_acres: Optional[float] = None
+    total_acres: Optional[float] = None
+    open_percent: Optional[float] = None
+
+    # Surface
+    surface_condition: Optional[str] = None  # e.g. "Packed Powder"
+    snow_comments: Optional[str] = None      # free-text resort comment
+
+    # Hours
+    weekday_hours: Optional[str] = None
+    weekend_hours: Optional[str] = None
+
+    # Media
+    trail_map_url: Optional[str] = None
+    webcam_url: Optional[str] = None
+    website_url: Optional[str] = None
+
+    # Report timestamp
+    report_datetime: Optional[str] = None
+
+
+@dataclass
 class ConditionsReport:
-    """Current weather conditions at the resort."""
+    """Current weather conditions from Open-Meteo."""
     temp_c: float
     wind_speed_kmh: float
     wind_gusts_kmh: float
@@ -48,10 +111,15 @@ class SnowReport:
     """
     Complete snow conditions report for a single resort.
     This is the canonical data object passed to SnowFormatter.
+
+    operations is populated when a SnoCountry key is configured and
+    the resort has a known snocountry_id. When present it takes
+    precedence over snow (depth/accumulation) in the formatter.
     """
     location: ResortLocation
-    snow: SnowDepthReport
-    conditions: ConditionsReport
+    snow: SnowDepthReport              # Open-Meteo (fallback / weather supplement)
+    conditions: ConditionsReport       # Open-Meteo (temp, wind, sky)
+    operations: Optional[ResortOperations] = None   # SnoCountry (resort-reported)
     fetched_at: datetime = field(default_factory=datetime.utcnow)
     data_source: str = "Open-Meteo"
 

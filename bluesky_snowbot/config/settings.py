@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 
 class ConfigError(Exception):
@@ -41,6 +42,9 @@ class Settings:
 
     # Snow data cache
     snow_cache_ttl_minutes: int
+
+    # SnoCountry API key (optional — enables resort-reported conditions)
+    snocountry_key: Optional[str]
 
     # Server identification (shown in latency footer)
     server_type: str  # "laptop" | "Pi"
@@ -81,6 +85,7 @@ class Settings:
             log_path=Path(opt("LOG_PATH", "logs/snowbot.log")),
             log_level=opt("LOG_LEVEL", "INFO").upper(),
             snow_cache_ttl_minutes=opt_int("SNOW_CACHE_TTL_MINUTES", 30),
+            snocountry_key=opt("SNOCOUNTRY_KEY") or None,
             server_type=opt("SERVER_TYPE", "laptop"),
         )
 
