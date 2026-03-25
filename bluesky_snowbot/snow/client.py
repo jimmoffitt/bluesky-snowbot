@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.open-meteo.com/v1/forecast"
 
-# Hourly variables we request
+# Hourly variables — current conditions + 72h accumulation history
 HOURLY_VARS = [
     "temperature_2m",
     "snow_depth",
@@ -31,6 +31,16 @@ HOURLY_VARS = [
     "wind_gusts_10m",
     "weather_code",
     "visibility",
+]
+
+# Daily variables — 3-day history + 7-day forecast
+DAILY_VARS = [
+    "snowfall_sum",
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "weather_code",
+    "precipitation_sum",
+    "wind_speed_10m_max",
 ]
 
 REQUEST_TIMEOUT = 15  # seconds
@@ -53,8 +63,9 @@ class SnowClient:
             "latitude":       round(lat, 4),
             "longitude":      round(lon, 4),
             "hourly":         ",".join(HOURLY_VARS),
+            "daily":          ",".join(DAILY_VARS),
             "past_days":      past_days,
-            "forecast_days":  1,
+            "forecast_days":  8,   # today + 7 days ahead
             "timezone":       "auto",
         }
         resp = requests.get(BASE_URL, params=params, timeout=REQUEST_TIMEOUT)

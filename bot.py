@@ -43,6 +43,14 @@ from bluesky_snowbot.channels.notify.base import (
 from bluesky_snowbot.channels.notify.bluesky_dm import BlueskyDMNotifyChannel
 from bluesky_snowbot.channels.notify.bluesky_post import BlueskyPostNotifyChannel
 from bluesky_snowbot.config.settings import Settings
+from bluesky_snowbot.content import ContentLibrary
+from bluesky_snowbot.menu import (
+    STATE_NAMES, classify_menu_input, format_help, format_learn_menu,
+    format_link_detail, format_main_menu, format_photo_caption,
+    format_playlist_detail, format_playlist_menu, format_resorts_menu,
+    format_states_menu, is_menu_trigger,
+)
+from bluesky_snowbot.snow.resolver import _RESORTS_BY_STATE
 from bluesky_snowbot.snow.formatter import SnowFormatter
 from bluesky_snowbot.snow.service import SnowService
 from bluesky_snowbot.storage.db import Database
@@ -62,10 +70,12 @@ class SnowBot:
         self._settings  = settings
         self._db        = Database(path=settings.db_path)
         self._formatter = SnowFormatter()
+        self._content   = ContentLibrary.load()
         self._snow      = SnowService(
             db=self._db,
             cache_ttl_minutes=settings.snow_cache_ttl_minutes,
             snocountry_key=settings.snocountry_key,
+            snocountry_mock=settings.snocountry_mock,
         )
 
         self._alert_channels: list[AlertChannel] = []
@@ -145,6 +155,26 @@ class SnowBot:
             self._handle_dm_command(request)
             self._db.update_request_status(db_id, "complete")
             return
+
+        # Menu / session navigation (DM only)
+        if request.source_channel == "dm" and not request.command:
+            raw = request.raw_content.strip()
+
+            # Named keyword → branch (takes priority over session)
+            branch = classify_menu_input(raw)
+            if branch:
+                self._handle_menu_branch(request, branch)
+                self._db.update_request_status(db_id, "complete")
+                return
+
+            # Numeric selection within active session
+            if raw.isdigit() and request.requester_did:
+                session = self._db.get_dm_session(
+                    request.requester_did, self._settings.dm_session_ttl_minutes
+                )
+                if session and self._handle_session_selection(request, session, int(raw)):
+                    self._db.update_request_status(db_id, "complete")
+                    return
 
         # Home location fallback for DMs with no explicit location
         if not request.raw_location and request.source_channel == "dm" and request.requester_did:
@@ -251,6 +281,29 @@ class SnowBot:
                 self._send_dm_reply(request,
                     f"Couldn't find resort: {raw!r}. Try a known resort name like 'Vail' or 'Park City'.")
 
+        elif cmd == "set_state":
+            raw = request.raw_content.strip()
+            for prefix in ("set state ", "set state"):
+                if raw.lower().startswith(prefix):
+                    raw = raw[len(prefix):].strip()
+                    break
+            code = raw.upper()
+            if code in STATE_NAMES:
+                if did:
+                    self._db.set_home_state(did, code)
+                self._send_dm_reply(request,
+                    f"Home region set to {STATE_NAMES[code]} ({code}). "
+                    f"Next time you ask for snow reports I'll start there.")
+            else:
+                valid = ", ".join(sorted(STATE_NAMES.keys()))
+                self._send_dm_reply(request,
+                    f"Unknown region: {raw!r}\nValid codes: {valid}")
+
+        elif cmd == "clear_state":
+            if did:
+                self._db.clear_home_state(did)
+            self._send_dm_reply(request, "Home region cleared.")
+
         elif cmd == "clear_home":
             if did:
                 self._db.clear_home(did)
@@ -265,9 +318,17 @@ class SnowBot:
             prefs = self._db.get_user_prefs(did) if did else None
             if prefs:
                 home = prefs.get("home_display") or prefs.get("home_raw") or "not set"
+                state_code = prefs.get("home_state")
+                home_state = (
+                    f"{STATE_NAMES.get(state_code, state_code)} ({state_code})"
+                    if state_code else "not set"
+                )
             else:
-                home = "not set"
-            self._send_dm_reply(request, f"Your settings:\n  Home resort: {home}")
+                home  = "not set"
+                home_state = "not set"
+            self._send_dm_reply(request,
+                f"Your settings:\n  Home resort: {home}\n  Home region: {home_state}"
+            )
 
         elif cmd == "help":
             self._send_dm_reply(request, (
@@ -281,6 +342,159 @@ class SnowBot:
 
         else:
             logger.warning("[bot] Unknown DM command: %r", cmd)
+
+    def _handle_menu_branch(self, request: AlertRequest, branch: str) -> None:
+        did = request.requester_did
+
+        if branch == "menu":
+            if did:
+                self._db.clear_dm_session(did)
+            self._send_dm_reply(request, format_main_menu())
+
+        elif branch == "snow_report":
+            # If user has a home state saved, jump straight to that state's resorts
+            prefs = self._db.get_user_prefs(did) if did else None
+            home_state = prefs.get("home_state") if prefs else None
+            if home_state and home_state in _RESORTS_BY_STATE:
+                resorts = _RESORTS_BY_STATE[home_state]
+                if did:
+                    self._db.set_dm_session(did, "resorts", state=home_state)
+                self._send_dm_reply(request, format_resorts_menu(home_state, resorts))
+            else:
+                if did:
+                    self._db.set_dm_session(did, "states")
+                for _msg in format_states_menu(_RESORTS_BY_STATE):
+                    self._send_dm_reply(request, _msg)
+
+        elif branch == "back":
+            self._handle_back(request)
+
+        elif branch == "change_state":
+            if did:
+                self._db.set_dm_session(did, "states")
+            for _msg in format_states_menu(_RESORTS_BY_STATE):
+                self._send_dm_reply(request, _msg)
+
+        elif branch == "learn":
+            if did:
+                self._db.set_dm_session(did, "learn")
+            for msg in format_learn_menu(self._content):
+                self._send_dm_reply(request, msg)
+
+        elif branch == "photos":
+            photo = self._content.random_photo()
+            if photo:
+                self._send_photo_dm(request, photo)
+            else:
+                self._send_dm_reply(request, "No photos available right now.")
+
+        elif branch == "playlist":
+            if did:
+                self._db.set_dm_session(did, "playlist")
+            for msg in format_playlist_menu(self._content):
+                self._send_dm_reply(request, msg)
+
+        elif branch == "help":
+            self._send_dm_reply(request, format_help())
+
+    def _handle_back(self, request: AlertRequest) -> None:
+        """Navigate one level up based on current session context."""
+        did = request.requester_did
+        session = self._db.get_dm_session(did, self._settings.dm_session_ttl_minutes) if did else None
+
+        if session is None:
+            # No session — "back" from anywhere unknown goes to main menu
+            if did:
+                self._db.clear_dm_session(did)
+            self._send_dm_reply(request, format_main_menu())
+
+        elif session["menu"] == "resorts":
+            # Back from resort list → states menu
+            if did:
+                self._db.set_dm_session(did, "states")
+            for _msg in format_states_menu(_RESORTS_BY_STATE):
+                self._send_dm_reply(request, _msg)
+
+        elif session["menu"] == "states":
+            # Back from states menu → main menu
+            if did:
+                self._db.clear_dm_session(did)
+            self._send_dm_reply(request, format_main_menu())
+
+        else:
+            # Back from learn / playlist / any other leaf → main menu
+            if did:
+                self._db.clear_dm_session(did)
+            self._send_dm_reply(request, format_main_menu())
+
+    def _handle_session_selection(self, request: AlertRequest, session: dict, index: int) -> bool:
+        """
+        Handle a numeric selection within an active session.
+        Returns True if handled, False if the number is out of range or session unknown.
+        """
+        did  = request.requester_did
+        menu = session.get("menu")
+
+        if menu == "states":
+            states = list(_RESORTS_BY_STATE.keys())
+            if not 1 <= index <= len(states):
+                self._send_dm_reply(request,
+                    f"Please reply with a number between 1 and {len(states)}.")
+                return True
+            state_code = states[index - 1]
+            resorts = _RESORTS_BY_STATE[state_code]
+            if did:
+                self._db.set_dm_session(did, "resorts", state=state_code)
+            self._send_dm_reply(request, format_resorts_menu(state_code, resorts))
+            return True
+
+        elif menu == "resorts":
+            state_code = session.get("state", "")
+            resorts = _RESORTS_BY_STATE.get(state_code, [])
+            if not 1 <= index <= len(resorts):
+                self._send_dm_reply(request,
+                    f"Please reply with a number between 1 and {len(resorts)}.")
+                return True
+            resort_entry = resorts[index - 1]
+            # Keep session as-is so "back" returns to this resort list
+            request.raw_location = resort_entry["display"]
+            return False  # fall through to normal snow lookup
+
+        elif menu == "learn":
+            self._handle_learn_selection(request, index)
+            return True
+
+        elif menu == "playlist":
+            self._handle_playlist_selection(request, index)
+            return True
+
+        return False
+
+    def _handle_learn_selection(self, request: AlertRequest, index: int) -> None:
+        self._send_dm_reply(request, format_link_detail(self._content, index))
+
+    def _handle_playlist_selection(self, request: AlertRequest, index: int) -> None:
+        self._send_dm_reply(request, format_playlist_detail(self._content, index))
+
+    def _send_photo_dm(self, request: AlertRequest, photo) -> None:
+        """Send a photo + caption as a DM. Falls back to caption-only if upload fails."""
+        channel = self._notify_channels.get("bluesky_dm")
+        if channel and hasattr(channel, "send_photo"):
+            try:
+                payload = NotificationPayload(
+                    request_db_id=request.db_id,
+                    post_thread=[format_photo_caption(photo)],
+                    reply_to_uri=request.reply_to_uri,
+                    recipient_handle=request.requester_handle,
+                    target_channel="bluesky_dm",
+                    attachment_path=str(photo.path),
+                )
+                channel.send(payload)
+                return
+            except Exception as exc:
+                logger.warning("[bot] Photo send failed: %s", exc)
+        # Fallback: caption only
+        self._send_dm_reply(request, format_photo_caption(photo))
 
     def _send_dm_reply(self, request: AlertRequest, message: str) -> None:
         payload = NotificationPayload(

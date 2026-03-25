@@ -46,6 +46,12 @@ class Settings:
     # SnoCountry API key (optional — enables resort-reported conditions)
     snocountry_key: Optional[str]
 
+    # SnoCountry mock mode (dev/testing without a real API key)
+    snocountry_mock: bool
+
+    # DM session TTL — how long a menu navigation session stays active (minutes)
+    dm_session_ttl_minutes: int
+
     # Server identification (shown in latency footer)
     server_type: str  # "laptop" | "Pi"
 
@@ -86,6 +92,8 @@ class Settings:
             log_level=opt("LOG_LEVEL", "INFO").upper(),
             snow_cache_ttl_minutes=opt_int("SNOW_CACHE_TTL_MINUTES", 30),
             snocountry_key=opt("SNOCOUNTRY_KEY") or None,
+            snocountry_mock=opt("SNOCOUNTRY_MOCK", "false").lower() in ("1", "true", "yes"),
+            dm_session_ttl_minutes=opt_int("DM_SESSION_TTL_MINUTES", 30),
             server_type=opt("SERVER_TYPE", "laptop"),
         )
 

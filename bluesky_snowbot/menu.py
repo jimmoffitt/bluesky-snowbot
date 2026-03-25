@@ -1,0 +1,218 @@
+"""
+Menu system — formats the main menu and sub-menu responses for DM interactions.
+
+Main menu options:
+  1. Snow reports
+  2. Learn about snow
+  3. See snow photos
+  4. Music playlists
+  5. Help / About
+
+Each option maps to a keyword the user can send (number or word).
+Responses are kept to ≤300 chars per Bluesky post limit, split into
+multiple messages when needed.
+"""
+
+from __future__ import annotations
+
+from bluesky_snowbot.content import ContentLibrary
+from bluesky_snowbot.snow.resolver import snotel_icon
+
+# ---------------------------------------------------------------------------
+# Trigger keyword sets (checked case-insensitively against stripped DM text)
+# ---------------------------------------------------------------------------
+
+MENU_TRIGGERS = {"menu", "main menu", "main", "top", "start", "start over", "startover", "options"}
+
+SNOW_REPORT_TRIGGERS  = {"1", "snow reports", "snow report", "report", "reports", "snow"}
+LEARN_TRIGGERS        = {"2", "learn", "learn about snow", "science", "links", "resources"}
+PHOTOS_TRIGGERS       = {"3", "photos", "photo", "picture", "pictures", "pic", "pics"}
+PLAYLIST_TRIGGERS     = {"4", "music", "playlist", "playlists", "songs", "spotify"}
+HELP_TRIGGERS         = {"5", "help", "about", "?"}
+CHANGE_STATE_TRIGGERS = {"change state", "states", "regions", "change region", "all states"}
+BACK_TRIGGERS         = {"back", "go back", "...", "up", "return"}
+
+# ---------------------------------------------------------------------------
+# State / region display names
+# ---------------------------------------------------------------------------
+
+STATE_NAMES: dict[str, str] = {
+    # United States
+    "AK": "Alaska",
+    "AZ": "Arizona",
+    "CA": "California",
+    "CO": "Colorado",
+    "ID": "Idaho",
+    "ME": "Maine",
+    "MN": "Minnesota",
+    "MT": "Montana",
+    "NH": "New Hampshire",
+    "NM": "New Mexico",
+    "NV": "Nevada",
+    "OR": "Oregon",
+    "UT": "Utah",
+    "VT": "Vermont",
+    "WA": "Washington",
+    "WY": "Wyoming",
+    # Canada
+    "AB": "Alberta",
+    "BC": "British Columbia",
+    "QC": "Québec",
+    # Europe
+    "AT": "Austria",
+    "CH": "Switzerland",
+    "FR": "France",
+    "IT": "Italy",
+    "AD": "Andorra",
+    # Japan
+    "HK": "Hokkaido",
+    "NG": "Nagano",
+    "NI": "Niigata",
+    # New Zealand
+    "NZ": "New Zealand",
+}
+
+
+def is_menu_trigger(text: str) -> bool:
+    return text.strip().lower() in MENU_TRIGGERS
+
+
+def classify_menu_input(text: str) -> str | None:
+    """
+    Return a menu branch name for the given DM text, or None if not a menu command.
+    Branch names: "menu", "snow_report", "learn", "photos", "playlist",
+                  "help", "change_state"
+    """
+    t = text.strip().lower()
+    if t in MENU_TRIGGERS:         return "menu"
+    if t in BACK_TRIGGERS:         return "back"
+    if t in SNOW_REPORT_TRIGGERS:  return "snow_report"
+    if t in LEARN_TRIGGERS:        return "learn"
+    if t in PHOTOS_TRIGGERS:       return "photos"
+    if t in PLAYLIST_TRIGGERS:     return "playlist"
+    if t in HELP_TRIGGERS:         return "help"
+    if t in CHANGE_STATE_TRIGGERS: return "change_state"
+    return None
+
+
+def format_states_menu(resorts_by_state: dict) -> list[str]:
+    """Returns one or more messages listing all regions, numbered for selection."""
+    lines = []
+    for i, (code, resorts) in enumerate(resorts_by_state.items(), 1):
+        name = STATE_NAMES.get(code, code)
+        count = len(resorts)
+        lines.append(f"{i}. {code} — {name} ({count} resort{'s' if count != 1 else ''})")
+    return _pack_lines("🎿 Select a region:\n\n", lines, footer="\nReply with a number — or 'menu' for main menu.")
+
+
+def format_resorts_menu(state_code: str, resorts: list[dict]) -> list[str]:
+    """Messages listing resorts in a state, numbered for selection.
+    Each resort line includes a SNOTEL quality icon: ❄ good  ≈ marginal  ○ none
+    """
+    name = STATE_NAMES.get(state_code, state_code)
+    header = f"🎿 {name} resorts:\n\n"
+    lines = []
+    for i, resort in enumerate(resorts, 1):
+        icon = snotel_icon(resort.get("snotel_dist_mi"), resort.get("snotel"))
+        lines.append(f"{i}. {resort['display']} {icon}")
+    footer = "\nReply with a number — or 'back' for regions.\n❄ on-mtn SNOTEL  ≈ nearby  ○ model only"
+    return _pack_lines(header, lines, footer=footer)
+
+
+def format_main_menu() -> str:
+    return (
+        "Hi! I'm SnowBot ❄️ What would you like?\n\n"
+        "1. Snow reports\n"
+        "2. Learn about snow\n"
+        "3. See snow photos\n"
+        "4. Music playlists\n"
+        "5. Help / About\n\n"
+        "Reply with a number or keyword — or just type a resort name for instant conditions."
+    )
+
+
+def format_learn_menu(lib: ContentLibrary) -> list[str]:
+    """Returns a list of DM messages listing all snow science links."""
+    links = lib.all_links()
+    if not links:
+        return ["No learn resources available right now."]
+
+    messages = ["❄️ Learn about snow — select a resource:\n"]
+    lines = []
+    for i, link in enumerate(links, 1):
+        lines.append(f"{i}. {link.short_name} — {link.full_name}")
+    # Pack lines into ≤300-char messages
+    return _pack_lines("❄️ Learn about snow:\n\n", lines, footer="\nReply with a number for details.")
+
+
+def format_link_detail(lib: ContentLibrary, index: int) -> str:
+    """Return description + URL for the nth link (1-based)."""
+    links = lib.all_links()
+    if not 1 <= index <= len(links):
+        return f"Please reply with a number between 1 and {len(links)}."
+    link = links[index - 1]
+    detail = f"{link.full_name}\n\n{link.description}\n\n{link.url}"
+    return detail[:300]
+
+
+def format_playlist_menu(lib: ContentLibrary) -> list[str]:
+    """Returns DM messages listing all playlists."""
+    playlists = lib.all_playlists()
+    if not playlists:
+        return ["No playlists available right now."]
+    lines = []
+    for i, pl in enumerate(playlists, 1):
+        lines.append(f"{i}. {pl.name} — {pl.description}")
+    return _pack_lines("🎵 Music playlists:\n\n", lines, footer="\nReply with a number to get the Spotify link.")
+
+
+def format_playlist_detail(lib: ContentLibrary, index: int) -> str:
+    """Return name + URL for the nth playlist (1-based)."""
+    playlists = lib.all_playlists()
+    if not 1 <= index <= len(playlists):
+        return f"Please reply with a number between 1 and {len(playlists)}."
+    pl = playlists[index - 1]
+    return f"🎵 {pl.name}\n{pl.description}\n\n{pl.url}"
+
+
+def format_photo_caption(photo) -> str:
+    return f"📸 {photo.caption}" if photo else "No photos available right now."
+
+
+def format_help() -> str:
+    return (
+        "SnowBot ❄️\n\n"
+        "Send a resort name for snow conditions:\n"
+        "  Vail  •  Park City  •  Mammoth\n\n"
+        "Other commands:\n"
+        "  menu — show main menu\n"
+        "  learn — snow science links\n"
+        "  photos — snow photos\n"
+        "  music — Spotify playlists\n"
+        "  set home Vail — save home resort\n"
+        "  settings — view preferences\n"
+        "  reset — clear preferences"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _pack_lines(header: str, lines: list[str], footer: str = "") -> list[str]:
+    """Pack lines into messages of ≤300 chars, with header on first message."""
+    messages = []
+    current = header
+    for line in lines:
+        candidate = current + line + "\n"
+        if len(candidate) + len(footer) > 300 and current != header:
+            messages.append(current.rstrip())
+            current = line + "\n"
+        else:
+            current = candidate
+    if current.strip():
+        current = current.rstrip()
+        if footer and len(current) + len(footer) <= 300:
+            current += footer
+        messages.append(current)
+    return messages

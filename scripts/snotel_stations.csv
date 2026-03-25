@@ -1,0 +1,67 @@
+resort,state,resort_lat,resort_lon,resort_elev_m,snotel_triplet,snotel_name,snotel_lat,snotel_lon,snotel_elev_ft,dist_miles,elev_delta_ft,candidates,notes
+Vail,CO,39.64,-106.3742,3527,842:CO:SNTL,Vail Mountain,39.61765,-106.38019,10290,1.6,1282,32,
+Breckenridge,CO,39.4817,-106.0384,3914,415:CO:SNTL,Copper Mountain,39.48917,-106.17154,10500,7.1,2341,22,
+Aspen Mountain,CO,39.1911,-106.8175,3651,1101:CO:SNTL,Chapman Tunnel,39.2621,-106.62944,10090,11.2,1888,21,
+Snowmass,CO,39.2084,-106.9497,3650,669:CO:SNTL,North Lost Trail,39.07818,-107.14388,9190,13.8,2785,21,
+Beaver Creek,CO,39.6042,-106.5167,3488,1041:CO:SNTL,Beaver Ck Village,39.59871,-106.51113,8530,0.5,2914,35,
+Telluride,CO,37.9375,-107.8123,3832,1344:CO:SNTL,Alta Lakes,37.88929,-107.84484,11290,3.8,1282,21,
+Steamboat Springs,CO,40.485,-106.8317,3221,457:CO:SNTL,Dry Lake,40.5337,-106.7814,8240,4.3,2328,21,
+Copper Mountain,CO,39.5014,-106.1516,3750,415:CO:SNTL,Copper Mountain,39.48917,-106.17154,10500,1.4,1803,27,
+Arapahoe Basin,CO,39.6423,-105.8717,3979,505:CO:SNTL,Grizzly Peak,39.64646,-105.8694,11110,0.3,1945,19,
+Keystone,CO,39.5792,-105.9347,3658,505:CO:SNTL,Grizzly Peak,39.64646,-105.8694,11110,5.8,891,27,
+Crested Butte,CO,38.8697,-106.9878,3707,380:CO:SNTL,Butte,38.89435,-106.95327,10190,2.5,1972,16,
+Eldora,CO,39.9486,-105.5639,3252,564:CO:SNTL,Lake Eldora,39.93659,-105.59031,9700,1.6,969,31,
+Loveland,CO,39.6814,-105.9016,4080,602:CO:SNTL,Loveland Basin,39.67428,-105.90264,11410,0.5,1976,16,
+Winter Park,CO,39.8917,-105.7631,2903,1186:CO:SNTL,Fool Creek,39.86866,-105.86765,11130,5.8,1605,38,
+Wolf Creek,CO,37.4827,-106.8021,3353,874:CO:SNTL,Wolf Creek Summit,37.47903,-106.80234,10930,0.3,71,17,
+Park City Mountain,UT,40.6514,-111.5079,3051,814:UT:SNTL,Thaynes Canyon,40.6235,-111.53322,9260,2.3,750,37,
+Snowbird,UT,40.583,-111.655,3353,766:UT:SNTL,Snowbird,40.56914,-111.65852,9170,1.0,1831,21,
+Alta,UT,40.5882,-111.6385,2601,1308:UT:SNTL,Atwater,40.59124,-111.63775,8750,0.2,216,39,
+Deer Valley,UT,40.6374,-111.4964,2917,814:UT:SNTL,Thaynes Canyon,40.6235,-111.53322,9260,2.2,310,41,
+Canyons Village,UT,40.6818,-111.5615,2088,856:UT:SNTL,Parleys Upper,40.70194,-111.60619,8330,2.7,1479,40,
+Solitude Mountain,UT,40.6199,-111.5919,3158,366:UT:SNTL,Brighton,40.59936,-111.58167,8790,1.5,1571,31,
+Mammoth Mountain,CA,37.6308,-119.0326,3369,846:CA:SNTL,Virginia Lakes Ridge,38.07298,-119.23433,9400,32.5,1653,2,
+Palisades Tahoe,CA,39.1969,-120.2358,2335,784:CA:SNTL,Palisades Tahoe,39.18986,-120.26576,8010,1.7,348,21,
+Northstar California,CA,39.2741,-120.1212,2399,834:CA:SNTL,Truckee #2,39.30087,-120.18407,6500,3.8,1371,20,
+Heavenly Mountain,CA,38.9352,-119.94,3064,518:CA:SNTL,Heavenly Valley,38.92431,-119.91641,8540,1.5,1512,20,
+Kirkwood,CA,38.6845,-120.066,2377,1067:CA:SNTL,Carson Pass,38.6927,-120.0022,8360,3.5,561,26,
+Jackson Hole Mountain Resort,WY,43.5876,-110.8277,1924,689:WY:SNTL,Phillips Bench,43.51687,-110.91258,8170,6.5,1857,13,
+Big Sky Resort,MT,45.2599,-111.4008,2286,590:MT:SNTL,Lone Mountain,45.27412,-111.42692,8820,1.6,1319,17,
+Sun Valley,ID,43.696,-114.3513,2780,895:ID:SNTL,Chocolate Gulch,43.7685,-114.41812,6310,6.0,2811,16,
+Taos Ski Valley,NM,36.5953,-105.4411,3159,1168:NM:SNTL,Taos Powderhorn,36.58195,-105.45617,11020,1.2,655,13,
+Stowe Mountain Resort,VT,44.5243,-72.7813,1339,,,,,,,,0,no match within 50 mi
+Killington Resort,VT,43.6045,-72.8201,1293,,,,,,,,0,no match within 50 mi
+Sugarbush Resort,VT,44.1373,-72.9054,1201,,,,,,,,0,no match within 50 mi
+Afton Alps,MN,44.8545,-92.7907,282,,,,,,,,0,no match within 50 mi
+Mt. Bachelor,OR,43.9743,-121.6864,2195,815:OR:SNTL,Three Creeks Meadow,44.14425,-121.64095,5680,12.0,1521,11,
+Crystal Mountain,WA,46.9354,-121.4748,1341,642:WA:SNTL,Morse Lake,46.90585,-121.4827,5400,2.1,1000,27,
+Stevens Pass,WA,47.7462,-121.0859,1238,791:WA:SNTL,Stevens Pass,47.74607,-121.09288,3940,0.3,121,22,
+Mt. Baker,WA,48.855,-121.673,1067,909:WA:SNTL,Wells Creek,48.8661,-121.78976,4040,5.4,539,15,
+Alyeska Resort,AK,60.9586,-149.1107,250,1103:AK:SNTL,Mt. Alyeska,60.95842,-149.08858,1500,0.7,679,13,
+Mt. Rose,NV,39.3144,-119.8903,2638,652:NV:SNTL,Mt Rose Ski Area,39.31573,-119.89473,8810,0.3,154,4,
+Brighton Resort,UT,40.5986,-111.5831,2667,366:UT:SNTL,Brighton,40.59936,-111.58167,8790,0.1,39,40,
+Snowbasin Resort,UT,41.2119,-111.8519,1924,333:UT:SNTL,Ben Lomond Trail,41.38291,-111.92103,5970,12.3,342,34,
+Grand Targhee Resort,WY,43.7888,-110.9577,2392,1082:WY:SNTL,Grand Targhee,43.77933,-110.92783,9260,1.6,1411,11,
+Whitefish Mountain Resort,MT,48.4799,-114.3558,2152,1311:MT:SNTL,Stryker Basin,48.68005,-114.66365,6200,19.7,860,11,
+Sunday River,ME,44.4683,-70.8567,744,,,,,,,,0,no match within 50 mi
+Sugarloaf,ME,45.0316,-70.3151,1291,,,,,,,,0,no match within 50 mi
+Loon Mountain,NH,44.0312,-71.6236,966,,,,,,,,0,no match within 50 mi
+Cannon Mountain,NH,44.1562,-71.7028,1262,,,,,,,,0,no match within 50 mi
+Jay Peak,VT,44.9259,-72.5213,1272,,,,,,,,0,no match within 50 mi
+Whistler Blackcomb,BC,50.115,-122.95,1100,,,,,,,,0,non-SNOTEL region
+Revelstoke Mountain Resort,BC,50.9583,-118.1638,511,,,,,,,,0,non-SNOTEL region
+Big White Ski Resort,BC,49.7216,-118.9266,1755,,,,,,,,0,non-SNOTEL region
+Sun Peaks Resort,BC,50.8746,-119.9256,1255,,,,,,,,0,non-SNOTEL region
+Fernie Alpine Resort,BC,49.4639,-115.0866,1052,,,,,,,,0,non-SNOTEL region
+Kicking Horse Mountain Resort,BC,51.2976,-117.0483,1190,,,,,,,,0,non-SNOTEL region
+Red Mountain Resort,BC,49.1017,-117.8188,1161,,,,,,,,0,non-SNOTEL region
+Panorama Mountain Resort,BC,50.4603,-116.2403,1150,,,,,,,,0,non-SNOTEL region
+Lake Louise Ski Resort,AB,51.4419,-116.1622,1645,,,,,,,,0,non-SNOTEL region
+Banff Sunshine Village,AB,51.115,-115.7641,1660,,,,,,,,0,non-SNOTEL region
+Marmot Basin,AB,52.8011,-118.0832,1698,,,,,,,,0,non-SNOTEL region
+Coronet Peak,NZ,-44.8788,168.7016,1649,,,,,,,,0,non-SNOTEL region
+The Remarkables,NZ,-45.0261,168.7939,1943,,,,,,,,0,non-SNOTEL region
+Mt. Hutt,NZ,-43.4667,171.5333,1100,,,,,,,,0,non-SNOTEL region
+Cardrona Alpine Resort,NZ,-44.85,168.95,1260,,,,,,,,0,non-SNOTEL region
+Treble Cone,NZ,-44.6311,168.8736,1248,,,,,,,,0,non-SNOTEL region
+Ohau Snow Fields,NZ,-44.2204,169.7785,1425,,,,,,,,0,non-SNOTEL region

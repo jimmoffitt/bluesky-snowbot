@@ -141,7 +141,15 @@ class Database:
                 home_display  TEXT,
                 home_lat      REAL,
                 home_lon      REAL,
+                home_state    TEXT,
                 updated_at    TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS dm_sessions (
+                user_did    TEXT PRIMARY KEY,
+                menu        TEXT NOT NULL,
+                context     TEXT,
+                updated_at  TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS file_inbox_log (
@@ -188,6 +196,17 @@ class Database:
                 AND resp.post_index  = 0;
         """)
         self._conn.commit()
+        self._migrate_schema()
+
+    def _migrate_schema(self) -> None:
+        """Apply additive migrations for existing databases."""
+        assert self._conn
+        # home_state column added after initial release
+        try:
+            self._conn.execute("ALTER TABLE user_prefs ADD COLUMN home_state TEXT")
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
     # ------------------------------------------------------------------
     # requests
@@ -382,6 +401,7 @@ class Database:
         home_display: Optional[str] = None,
         home_lat: Optional[float] = None,
         home_lon: Optional[float] = None,
+        home_state: Optional[str] = None,
     ) -> None:
         assert self._conn
         existing = self.get_user_prefs(did)
@@ -389,9 +409,9 @@ class Database:
             self._conn.execute(
                 """INSERT INTO user_prefs
                    (user_did, handle, home_raw, home_display,
-                    home_lat, home_lon, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (did, handle, home_raw, home_display, home_lat, home_lon, _now()),
+                    home_lat, home_lon, home_state, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (did, handle, home_raw, home_display, home_lat, home_lon, home_state, _now()),
             )
         else:
             updates: dict = {"updated_at": _now()}
@@ -400,6 +420,7 @@ class Database:
             if home_display is not None: updates["home_display"] = home_display
             if home_lat     is not None: updates["home_lat"]     = home_lat
             if home_lon     is not None: updates["home_lon"]     = home_lon
+            if home_state   is not None: updates["home_state"]   = home_state
             cols = ", ".join(f"{k} = ?" for k in updates)
             vals = list(updates.values()) + [did]
             self._conn.execute(
@@ -418,9 +439,69 @@ class Database:
         )
         self._conn.commit()
 
+    def set_home_state(self, did: str, state_code: str) -> None:
+        assert self._conn
+        existing = self.get_user_prefs(did)
+        if existing is None:
+            self._conn.execute(
+                "INSERT INTO user_prefs (user_did, home_state, updated_at) VALUES (?, ?, ?)",
+                (did, state_code.upper(), _now()),
+            )
+        else:
+            self._conn.execute(
+                "UPDATE user_prefs SET home_state = ?, updated_at = ? WHERE user_did = ?",
+                (state_code.upper(), _now(), did),
+            )
+        self._conn.commit()
+
+    def clear_home_state(self, did: str) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE user_prefs SET home_state = NULL, updated_at = ? WHERE user_did = ?",
+            (_now(), did),
+        )
+        self._conn.commit()
+
     def reset_prefs(self, did: str) -> None:
         assert self._conn
         self._conn.execute("DELETE FROM user_prefs WHERE user_did = ?", (did,))
+        self._conn.commit()
+
+    # ------------------------------------------------------------------
+    # dm_sessions
+    # ------------------------------------------------------------------
+
+    def get_dm_session(self, did: str, ttl_minutes: int = 30) -> Optional[dict]:
+        """Return active session for user, or None if absent/expired."""
+        assert self._conn
+        cutoff = (datetime.utcnow() - timedelta(minutes=ttl_minutes)).isoformat()
+        row = self._conn.execute(
+            "SELECT menu, context, updated_at FROM dm_sessions "
+            "WHERE user_did = ? AND updated_at > ?",
+            (did, cutoff),
+        ).fetchone()
+        if row is None:
+            return None
+        ctx = json.loads(row["context"]) if row["context"] else {}
+        return {"menu": row["menu"], **ctx}
+
+    def set_dm_session(self, did: str, menu: str, **context) -> None:
+        assert self._conn
+        ctx_json = json.dumps(context) if context else None
+        self._conn.execute(
+            """INSERT INTO dm_sessions (user_did, menu, context, updated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_did) DO UPDATE SET
+                   menu = excluded.menu,
+                   context = excluded.context,
+                   updated_at = excluded.updated_at""",
+            (did, menu, ctx_json, _now()),
+        )
+        self._conn.commit()
+
+    def clear_dm_session(self, did: str) -> None:
+        assert self._conn
+        self._conn.execute("DELETE FROM dm_sessions WHERE user_did = ?", (did,))
         self._conn.commit()
 
     # ------------------------------------------------------------------

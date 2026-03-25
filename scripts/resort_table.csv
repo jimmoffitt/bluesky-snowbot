@@ -1,0 +1,90 @@
+display,state,country,lat,lon,elev_m,elev_ft,postal_code,sc_id,snotel,snotel_dist_mi,aliases
+Vail,CO,US,39.64,-106.3742,3527,11571,81657,303023,842:CO:SNTL,1.6,vail | vail ski resort | vail mountain
+Breckenridge,CO,US,39.4817,-106.0384,3914,12841,80424,303007,415:CO:SNTL,7.1,breckenridge | breck | breckenridge ski resort
+Aspen Mountain,CO,US,39.1911,-106.8175,3651,11978,81611,303003,1101:CO:SNTL,11.2,aspen | aspen mountain
+Snowmass,CO,US,39.2084,-106.9497,3650,11975,81615,303020,669:CO:SNTL,13.8,snowmass | aspen snowmass | snowmass village
+Beaver Creek,CO,US,39.6042,-106.5167,3488,11443,81620,303005,1041:CO:SNTL,0.5,beaver creek | beaver creek resort
+Telluride,CO,US,37.9375,-107.8123,3832,12572,81435,303022,1344:CO:SNTL,3.8,telluride | telluride ski resort
+Steamboat Springs,CO,US,40.485,-106.8317,3221,10567,80487,303021,457:CO:SNTL,4.3,steamboat | steamboat springs | steamboat ski resort
+Copper Mountain,CO,US,39.5014,-106.1516,3750,12303,80443,303009,415:CO:SNTL,1.4,copper | copper mountain | copper mountain resort
+Arapahoe Basin,CO,US,39.6423,-105.8717,3979,13054,80435,303001,505:CO:SNTL,0.3,arapahoe basin | a-basin | abasin
+Keystone,CO,US,39.5792,-105.9347,3658,12001,80435,303014,505:CO:SNTL,5.8,keystone | keystone resort | keystone ski
+Crested Butte,CO,US,38.8697,-106.9878,3707,12162,81224,303010,380:CO:SNTL,2.5,crested butte | crested butte mountain resort
+Eldora,CO,US,39.9486,-105.5639,3252,10669,80466,303011,564:CO:SNTL,1.6,eldora | eldora mountain resort
+Loveland,CO,US,39.6814,-105.9016,4080,13385,80444,303015,602:CO:SNTL,0.5,loveland | loveland ski area
+Winter Park,CO,US,39.8917,-105.7631,2903,9524,80482,303024,1186:CO:SNTL,5.8,winter park | winter park resort
+Wolf Creek,CO,US,37.4827,-106.8021,3353,11000,81154,303025,874:CO:SNTL,0.3,wolf creek | wolf creek ski area
+Park City Mountain,UT,US,40.6514,-111.5079,3051,10009,84060,,814:UT:SNTL,2.3,park city | park city mountain | park city resort | pcmr
+Snowbird,UT,US,40.583,-111.655,3353,11000,84092,,766:UT:SNTL,1.0,snowbird | snowbird resort | snowbird ski
+Alta,UT,US,40.5882,-111.6385,2601,8533,84092,,1308:UT:SNTL,0.2,alta | alta ski area | alta utah
+Deer Valley,UT,US,40.6374,-111.4964,2917,9570,84060,,814:UT:SNTL,2.2,deer valley | deer valley resort
+Canyons Village,UT,US,40.6818,-111.5615,2088,6850,84098,,856:UT:SNTL,2.7,canyons | the canyons | canyons resort
+Solitude Mountain,UT,US,40.6199,-111.5919,3158,10360,84121,,366:UT:SNTL,1.5,solitude | solitude mountain resort
+Mammoth Mountain,CA,US,37.6308,-119.0326,3369,11053,93546,,MHP:CA:MSNT,1.4,mammoth | mammoth mountain | mammoth ski
+Palisades Tahoe,CA,US,39.1969,-120.2358,2335,7660,96146,916011,784:CA:SNTL,1.7,palisades tahoe | squaw valley | squaw | palisades
+Northstar California,CA,US,39.2741,-120.1212,2399,7870,96161,,834:CA:SNTL,3.8,northstar | northstar california | northstar tahoe
+Heavenly Mountain,CA,US,38.9352,-119.94,3064,10052,96150,,518:CA:SNTL,1.5,heavenly | heavenly mountain resort | heavenly tahoe
+Kirkwood,CA,US,38.6845,-120.066,2377,7798,95646,,1067:CA:SNTL,3.5,kirkwood | kirkwood mountain resort
+Jackson Hole Mountain Resort,WY,US,43.5876,-110.8277,1924,6312,83025,,689:WY:SNTL,6.5,jackson hole | jackson | jhmr | jackson hole mountain resort
+Big Sky Resort,MT,US,45.2599,-111.4008,2286,7500,59716,,590:MT:SNTL,1.6,big sky | big sky resort | big sky montana
+Sun Valley,ID,US,43.696,-114.3513,2780,9120,83353,,895:ID:SNTL,6.0,sun valley | sun valley resort
+Taos Ski Valley,NM,US,36.5953,-105.4411,3159,10364,87525,,1168:NM:SNTL,1.2,taos | taos ski valley
+Stowe Mountain Resort,VT,US,44.5243,-72.7813,1339,4393,05672,,,,stowe | stowe mountain resort | stowe vermont
+Killington Resort,VT,US,43.6045,-72.8201,1293,4242,05751,,,,killington | killington resort | killington vermont
+Sugarbush Resort,VT,US,44.1373,-72.9054,1201,3940,05674,,,,sugarbush | sugarbush resort
+Afton Alps,MN,US,44.8545,-92.7907,282,925,55001,612002,,,afton alps | afton alps ski
+Mt. Bachelor,OR,US,43.9743,-121.6864,2195,7201,97702,,815:OR:SNTL,12.0,mt bachelor | mount bachelor | bachelor
+Crystal Mountain,WA,US,46.9354,-121.4748,1341,4399,98022,,642:WA:SNTL,2.1,crystal mountain | crystal mountain washington
+Stevens Pass,WA,US,47.7462,-121.0859,1238,4061,98826,,791:WA:SNTL,0.3,stevens pass
+Mt. Baker,WA,US,48.855,-121.673,1067,3500,98244,,909:WA:SNTL,5.4,mt baker | mount baker | baker
+Alyeska Resort,AK,US,60.9586,-149.1107,250,820,99587,,1103:AK:SNTL,0.7,alyeska | alyeska resort
+Mt. Rose,NV,US,39.3144,-119.8903,2638,8654,89511,,652:NV:SNTL,0.3,mt rose | mount rose | mt rose ski tahoe
+Brighton Resort,UT,US,40.5986,-111.5831,2667,8750,84121,,366:UT:SNTL,0.1,brighton | brighton resort | brighton utah
+Snowbasin Resort,UT,US,41.2119,-111.8519,1924,6312,84317,,333:UT:SNTL,12.3,snowbasin | snowbasin resort
+Grand Targhee Resort,WY,US,43.7888,-110.9577,2392,7847,83414,,1082:WY:SNTL,1.6,grand targhee | grand targhee resort
+Whitefish Mountain Resort,MT,US,48.4799,-114.3558,2152,7060,59937,,1311:MT:SNTL,19.7,whitefish | whitefish mountain | whitefish mountain resort
+Sunday River,ME,US,44.4683,-70.8567,744,2440,04261,,,,sunday river | sunday river resort
+Sugarloaf,ME,US,45.0316,-70.3151,1291,4235,04947,,,,sugarloaf | sugarloaf mountain | sugarloaf resort
+Loon Mountain,NH,US,44.0312,-71.6236,966,3169,03251,,,,loon mountain | loon mountain resort
+Cannon Mountain,NH,US,44.1562,-71.7028,1262,4140,03580,,,,cannon mountain | cannon
+Jay Peak,VT,US,44.9259,-72.5213,1272,4173,05859,,,,jay peak | jay peak resort
+Whistler Blackcomb,BC,CA,50.115,-122.95,1100,3608,V0N 0A0,,,,whistler | whistler blackcomb | whistler bc
+Revelstoke Mountain Resort,BC,CA,50.9583,-118.1638,511,1676,V0E 2S0,,,,revelstoke | revelstoke mountain resort
+Big White Ski Resort,BC,CA,49.7216,-118.9266,1755,5757,V1P 1P3,,,,big white | big white ski resort
+Sun Peaks Resort,BC,CA,50.8746,-119.9256,1255,4117,V0E 5N0,,,,sun peaks | sun peaks resort
+Fernie Alpine Resort,BC,CA,49.4639,-115.0866,1052,3451,V0B 1M6,,,,fernie | fernie alpine resort
+Kicking Horse Mountain Resort,BC,CA,51.2976,-117.0483,1190,3904,V0A 1H0,,,,kicking horse | kicking horse mountain resort
+Red Mountain Resort,BC,CA,49.1017,-117.8188,1161,3809,V0G 1Y0,,,,red mountain | red mountain resort
+Panorama Mountain Resort,BC,CA,50.4603,-116.2403,1150,3772,V0A 1T0,,,,panorama | panorama mountain resort
+Lake Louise Ski Resort,AB,CA,51.4419,-116.1622,1645,5396,T0L 1E0,,,,lake louise | lake louise ski | lake louise ski resort
+Banff Sunshine Village,AB,CA,51.115,-115.7641,1660,5446,T1L 1J5,,,,banff sunshine | sunshine village | banff sunshine village
+Marmot Basin,AB,CA,52.8011,-118.0832,1698,5570,T0E 1E0,,,,marmot basin | marmot basin jasper
+Mont-Tremblant,QC,CA,46.1167,-74.5999,211,692,J8E 1T1,,,,mont-tremblant | tremblant
+Niseko Grand Hirafu,HK,JP,42.8635,140.6981,613,2011,044-0080,,,,niseko | niseko grand hirafu | niseko hirafu
+Rusutsu Resort,HK,JP,42.75,140.9,715,2345,048-1503,,,,rusutsu | rusutsu resort
+Furano Ski Resort,HK,JP,43.3427,142.384,659,2162,076-8511,,,,furano | furano ski resort
+Kiroro Mountain Resort,HK,JP,43.0701,140.9891,850,2788,046-0571,,,,kiroro | kiroro mountain resort
+Hakuba Valley (Happo-One),NG,JP,36.7201,137.8525,900,2952,399-9301,,,,hakuba | happo-one | hakuba valley | hakuba happo-one
+Nozawa Onsen,NG,JP,36.91,138.39,823,2700,389-2502,,,,nozawa onsen | nozawa
+Shiga Kogen,NG,JP,36.7057,138.5079,1300,4265,381-0401,,,,shiga kogen | shiga
+Naeba Ski Resort,NI,JP,36.7896,138.7837,933,3061,949-6292,,,,naeba | naeba ski resort
+Chamonix Mont-Blanc,FR,FR,45.9237,6.8694,1036,3398,74400,,,,chamonix | chamonix mont-blanc
+Courchevel 1850,FR,FR,45.3941,6.615,1850,6069,73120,,,,courchevel | courchevel 1850
+Val d'Isère,FR,FR,45.4475,6.9792,1840,6036,73150,,,,val d'isere | val d isere | val disere
+Méribel,FR,FR,45.3968,6.5666,1400,4593,73550,,,,meribel | méribel
+Zermatt,CH,CH,46.0207,7.7491,1620,5314,3920,,,,zermatt
+Verbier,CH,CH,46.1002,7.2265,1515,4970,1936,,,,verbier
+Davos,CH,CH,46.8021,9.8335,1560,5118,7260,,,,davos | davos klosters
+St. Anton am Arlberg,AT,AT,47.1296,10.2682,1304,4278,6580,,,,st anton | st. anton | saint anton | st anton am arlberg
+Ischgl,AT,AT,47.012,10.2913,1377,4517,6561,,,,ischgl
+Kitzbühel,AT,AT,47.4464,12.3922,762,2500,6370,,,,kitzbuhel | kitzbühel
+Lech/Zürs,AT,AT,47.2112,10.1439,1444,4737,6763,,,,lech | lech zurs | lech zürs | lech/zürs
+Cortina d'Ampezzo,IT,IT,46.5381,12.1372,1224,4015,32043,,,,cortina | cortina d'ampezzo
+Madonna di Campiglio,IT,IT,46.227,10.827,1522,4993,38086,,,,madonna di campiglio | campiglio
+Grandvalira (Andorra),AD,AD,42.5769,1.6678,1849,6066,AD500,,,,grandvalira | soldeu | andorra
+Coronet Peak,NZ,NZ,-44.8788,168.7016,1649,5410,9300,4424660,,,coronet peak | coronet peak nz
+The Remarkables,NZ,NZ,-45.0261,168.7939,1943,6374,9300,615013,,,the remarkables | remarkables | remarkables nz
+Mt. Hutt,NZ,NZ,-43.4667,171.5333,1100,3608,7700,,,,mt hutt | mount hutt
+Cardrona Alpine Resort,NZ,NZ,-44.85,168.95,1260,4133,9382,,,,cardrona | cardrona alpine resort
+Treble Cone,NZ,NZ,-44.6311,168.8736,1248,4094,9305,,,,treble cone
+Ohau Snow Fields,NZ,NZ,-44.2204,169.7785,1425,4675,7999,,,,ohau | ohau snow fields

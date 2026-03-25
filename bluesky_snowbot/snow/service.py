@@ -28,10 +28,13 @@ from typing import Optional
 
 from bluesky_snowbot.snow.client import SnowClient
 from bluesky_snowbot.snow.models import (
-    ConditionsReport, ResortLocation, SnowDepthReport, SnowReport, wmo_description,
+    ConditionsReport, DailyForecast, ResortLocation, SnowDepthReport, SnowReport,
+    SnotelReading, wmo_description,
 )
 from bluesky_snowbot.snow.resolver import SnowResolver
 from bluesky_snowbot.snow.snocountry_client import SnoCountryClient
+from bluesky_snowbot.snow.snocountry_mock import MockSnoCountryClient
+from bluesky_snowbot.snow.snotel_client import SnotelClient
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +46,21 @@ class SnowService:
         db,
         cache_ttl_minutes: int = 30,
         snocountry_key: Optional[str] = None,
+        snocountry_mock: bool = False,
     ) -> None:
-        self._db            = db
-        self._cache_ttl     = cache_ttl_minutes
-        self._resolver      = SnowResolver()
-        self._openmeteo     = SnowClient()
-        self._snocountry    = SnoCountryClient(snocountry_key) if snocountry_key else None
+        self._db         = db
+        self._cache_ttl  = cache_ttl_minutes
+        self._resolver   = SnowResolver()
+        self._openmeteo  = SnowClient()
+        self._snotel     = SnotelClient()
+
+        if snocountry_mock:
+            logger.info("[service] SnoCountry mock mode enabled")
+            self._snocountry = MockSnoCountryClient()
+        elif snocountry_key:
+            self._snocountry = SnoCountryClient(snocountry_key)
+        else:
+            self._snocountry = None
 
     def lookup(self, raw_location: str) -> SnowReport:
         """
@@ -85,24 +97,59 @@ class SnowService:
         raw = self._openmeteo.fetch(location.lat, location.lon)
         snow, conditions = _parse_open_meteo(raw, location)
 
-        # Attempt SnoCountry if configured and resort has a known ID
+        # Attempt SnoCountry if configured.
+        # Mock mode works with any resort (uses a synthetic ID derived from the name).
+        # Real mode requires a known snocountry_id.
         operations = None
-        if self._snocountry and location.snocountry_id:
-            logger.info("[service] Fetching SnoCountry data for %s (id=%s)",
-                        location.name, location.snocountry_id)
-            operations = self._snocountry.fetch_resort(location.snocountry_id)
-            if operations is None:
-                logger.warning("[service] SnoCountry returned no data for %s — using Open-Meteo only",
-                               location.name)
-        elif self._snocountry and not location.snocountry_id:
-            logger.debug("[service] No SnoCountry ID for %s — Open-Meteo only", location.name)
+        if self._snocountry:
+            is_mock = isinstance(self._snocountry, MockSnoCountryClient)
+            resort_id = location.snocountry_id or (
+                _synthetic_id(location.name) if is_mock else None
+            )
+            if resort_id is not None:
+                logger.info("[service] Fetching SnoCountry%s data for %s (id=%s)",
+                            " [mock]" if is_mock else "", location.name, resort_id)
+                operations = self._snocountry.fetch_resort(resort_id)
+                if operations is None:
+                    logger.warning("[service] SnoCountry returned no data for %s — Open-Meteo only",
+                                   location.name)
+            else:
+                logger.debug("[service] No SnoCountry ID for %s — Open-Meteo only", location.name)
 
-        data_source = "SnoCountry+Open-Meteo" if operations else "Open-Meteo"
+        # Attempt SNOTEL fetch if the resort has a known station
+        snotel = None
+        if location.snotel_triplet:
+            logger.info("[service] Fetching SNOTEL data for %s (%s)",
+                        location.name, location.snotel_triplet)
+            raw_snotel = self._snotel.fetch(location.snotel_triplet)
+            if raw_snotel:
+                snotel = SnotelReading(
+                    triplet=raw_snotel.triplet,
+                    station_name=raw_snotel.station_name,
+                    elevation_ft=raw_snotel.elevation_ft,
+                    snow_depth_in=raw_snotel.snow_depth_in,
+                    swe_in=raw_snotel.swe_in,
+                    snow_depth_cm=raw_snotel.snow_depth_cm,
+                    swe_cm=raw_snotel.swe_cm,
+                )
+            else:
+                logger.warning("[service] SNOTEL returned no data for %s", location.name)
+
+        forecast = _parse_daily_forecast(raw)
+        sources = []
+        if operations:
+            sources.append("SnoCountry")
+        if snotel:
+            sources.append("SNOTEL")
+        sources.append("Open-Meteo")
+        data_source = "+".join(sources)
         return SnowReport(
             location=location,
             snow=snow,
             conditions=conditions,
             operations=operations,
+            snotel=snotel,
+            forecast=forecast,
             data_source=data_source,
         )
 
@@ -144,6 +191,50 @@ def _parse_open_meteo(data: dict, location: ResortLocation) -> tuple[SnowDepthRe
 
 
 # ---------------------------------------------------------------------------
+# Daily forecast parsing
+# ---------------------------------------------------------------------------
+
+def _parse_daily_forecast(data: dict) -> list[DailyForecast]:
+    """
+    Parse Open-Meteo daily data into a list of DailyForecast entries.
+    Returns only future days (tomorrow onward) up to 7 days.
+    Past days are skipped — current history is covered by hourly 72h sums.
+    """
+    from datetime import date as date_cls
+    daily = data.get("daily", {})
+    times = daily.get("time", [])
+    if not times:
+        return []
+
+    def _dget(key: str, i: int, default=0.0):
+        vals = daily.get(key, [])
+        v = vals[i] if i < len(vals) else None
+        return v if v is not None else default
+
+    today_str = date_cls.today().isoformat()
+    days = []
+    for i, t in enumerate(times):
+        if t <= today_str:
+            continue                          # skip today and past
+        code = int(_dget("weather_code", i, 0))
+        days.append(DailyForecast(
+            date         = t,
+            snowfall_cm  = round(_dget("snowfall_sum", i), 1),
+            temp_max_c   = round(_dget("temperature_2m_max", i), 1),
+            temp_min_c   = round(_dget("temperature_2m_min", i), 1),
+            weather_code = code,
+            weather_desc = wmo_description(code),
+            precip_cm    = round(_dget("precipitation_sum", i), 1),
+            wind_max_kmh = round(_dget("wind_speed_10m_max", i), 1),
+            is_forecast  = True,
+        ))
+        if len(days) == 7:
+            break
+
+    return days
+
+
+# ---------------------------------------------------------------------------
 # Cache serialization
 # ---------------------------------------------------------------------------
 
@@ -162,6 +253,31 @@ def _serialize_report(report: SnowReport) -> dict:
         "weather_code":   report.conditions.weather_code,
         "weather_desc":   report.conditions.weather_desc,
         "visibility_km":  report.conditions.visibility_km,
+        # 7-day forecast (empty list when not available)
+        "forecast": [
+            {
+                "date":         d.date,
+                "snowfall_cm":  d.snowfall_cm,
+                "temp_max_c":   d.temp_max_c,
+                "temp_min_c":   d.temp_min_c,
+                "weather_code": d.weather_code,
+                "weather_desc": d.weather_desc,
+                "precip_cm":    d.precip_cm,
+                "wind_max_kmh": d.wind_max_kmh,
+                "is_forecast":  d.is_forecast,
+            }
+            for d in report.forecast
+        ],
+        # SNOTEL reading (None when not available)
+        "snotel": {
+            "triplet":       report.snotel.triplet,
+            "station_name":  report.snotel.station_name,
+            "elevation_ft":  report.snotel.elevation_ft,
+            "snow_depth_in": report.snotel.snow_depth_in,
+            "swe_in":        report.snotel.swe_in,
+            "snow_depth_cm": report.snotel.snow_depth_cm,
+            "swe_cm":        report.snotel.swe_cm,
+        } if report.snotel else None,
         # SnoCountry operations (None when not available)
         "operations": {
             "operating_status":      ops.operating_status,
@@ -200,6 +316,11 @@ def _serialize_report(report: SnowReport) -> dict:
     }
 
 
+def _synthetic_id(name: str) -> int:
+    """Stable numeric ID derived from resort name for mock mode."""
+    return abs(hash(name.lower())) % 100_000
+
+
 def _deserialize_report(data: dict, location: ResortLocation) -> SnowReport:
     from bluesky_snowbot.snow.models import ResortOperations
     snow = SnowDepthReport(
@@ -222,12 +343,19 @@ def _deserialize_report(data: dict, location: ResortLocation) -> SnowReport:
     if ops_data:
         operations = ResortOperations(**ops_data)
 
+    snotel_data = data.get("snotel")
+    snotel = SnotelReading(**snotel_data) if snotel_data else None
+
+    forecast = [DailyForecast(**d) for d in data.get("forecast", [])]
+
     fetched_at = datetime.fromisoformat(data["fetched_at"]) if "fetched_at" in data else datetime.utcnow()
     return SnowReport(
         location=location,
         snow=snow,
         conditions=conditions,
         operations=operations,
+        snotel=snotel,
+        forecast=forecast,
         fetched_at=fetched_at,
         data_source=data.get("data_source", "Open-Meteo"),
     )

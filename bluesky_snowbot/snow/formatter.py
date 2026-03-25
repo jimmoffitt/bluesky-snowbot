@@ -20,7 +20,8 @@ Usage:
 
 from __future__ import annotations
 
-from bluesky_snowbot.snow.models import SnowReport
+from bluesky_snowbot.snow.models import SnowReport, wmo_emoji
+from bluesky_snowbot.snow.resolver import snotel_quality
 
 BLUESKY_LIMIT = 300
 
@@ -30,14 +31,12 @@ class SnowFormatter:
     def format_thread(self, report: SnowReport) -> list[str]:
         """Return a list of ≤300-char strings forming a post thread."""
         if report.operations:
-            return [
-                self._post1_snocountry(report),
-                self._post2_snocountry(report),
-            ]
-        return [
-            self._post1_openmeteo(report),
-            self._post2_conditions(report),
-        ]
+            posts = [self._post1_snocountry(report), self._post2_snocountry(report)]
+        else:
+            posts = [self._post1_openmeteo(report), self._post2_conditions(report)]
+        if report.forecast:
+            posts.append(self._post3_forecast(report))
+        return posts
 
     # ------------------------------------------------------------------
     # SnoCountry-powered posts
@@ -86,6 +85,14 @@ class SnowFormatter:
         if ops.season_total_cm:
             season_str = f'\n   Season total: {_cm_to_in(ops.season_total_cm):.0f}"'
 
+        # SNOTEL SWE (observed) — SnoCountry doesn't report SWE
+        swe_str = ""
+        if report.snotel and report.snotel.swe_in is not None:
+            sn      = report.snotel
+            quality = snotel_quality(report.location.snotel_dist_mi, report.location.snotel_triplet)
+            icon    = "❄" if quality == "good" else "≈"
+            swe_str = f"\n   SWE: {sn.swe_in:.1f}\" / {sn.swe_cm:.1f} cm {icon} {sn.station_name}"
+
         text = (
             f"⛷️ {loc.name}, {loc.state}{elev_str}\n"
             f"Status: {status}\n\n"
@@ -93,6 +100,7 @@ class SnowFormatter:
             f"   New (24h):  {new24_str}\n"
             f"   New (48h):  {new48_str}"
             f"{season_str}"
+            f"{swe_str}"
         )
         return _truncate(text)
 
@@ -136,23 +144,60 @@ class SnowFormatter:
         return _truncate(text.lstrip("\n"))
 
     # ------------------------------------------------------------------
+    # 7-day forecast post (always shown when data is available)
+    # ------------------------------------------------------------------
+
+    def _post3_forecast(self, report: SnowReport) -> str:
+        """Compact 7-day forecast strip: day emoji snow hi/lo°F."""
+        from datetime import datetime
+        lines = [f"📅 {report.location.name} 7-Day Forecast\n"]
+        for day in report.forecast:
+            dt = datetime.fromisoformat(day.date)
+            dow = dt.strftime("%a")          # Mon, Tue…
+            emoji = wmo_emoji(day.weather_code)
+            snow_in = _cm_to_in(day.snowfall_cm)
+            hi_f = int(_c_to_f(day.temp_max_c))
+            lo_f = int(_c_to_f(day.temp_min_c))
+            snow_str = f'{snow_in:.0f}"' if snow_in >= 0.5 else '0"'
+            lines.append(f"{dow} {emoji} {snow_str}  Hi{hi_f}° Lo{lo_f}°")
+        return _truncate("\n".join(lines))
+
+    # ------------------------------------------------------------------
     # Open-Meteo only posts (fallback)
     # ------------------------------------------------------------------
 
     def _post1_openmeteo(self, report: SnowReport) -> str:
-        """Snow depth and recent snowfall totals (estimated from Open-Meteo)."""
+        """Snow depth and recent snowfall totals (Open-Meteo + optional SNOTEL)."""
         loc  = report.location
         snow = report.snow
+        sn   = report.snotel
 
-        depth_in = _cm_to_in(snow.depth_cm)
         elev_str = _elev_str(loc.elevation_m)
+        quality  = snotel_quality(loc.snotel_dist_mi, loc.snotel_triplet)
+
+        # Depth — SNOTEL observed when available, else Open-Meteo estimate
+        if sn and sn.snow_depth_in is not None:
+            depth_in = sn.snow_depth_in
+            depth_cm = sn.snow_depth_cm or depth_in * 2.54
+            if quality == "good":
+                depth_str = f'{depth_in:.0f}" / {depth_cm:.0f} cm ❄ {sn.station_name}'
+            else:
+                depth_str = f'{depth_in:.0f}" / {depth_cm:.0f} cm ≈ {sn.station_name} ({loc.snotel_dist_mi:.0f}mi)'
+        else:
+            depth_str = f'{_cm_to_in(snow.depth_cm):.0f}" / {snow.depth_cm:.0f} cm ○ model est.'
+
+        # SWE — only when SNOTEL has it
+        swe_str = ""
+        if sn and sn.swe_in is not None:
+            swe_str = f"\n   SWE:        {sn.swe_in:.1f}\" / {sn.swe_cm:.1f} cm"
 
         text = (
             f"⛷️ {loc.name}, {loc.state}{elev_str}\n\n"
-            f"❄️ Base depth: {depth_in:.0f}\" / {snow.depth_cm:.0f} cm (est.)\n"
+            f"❄️ Base depth: {depth_str}\n"
             f"   New (24h):  {_cm_to_in(snow.new_24h_cm):.1f}\" / {snow.new_24h_cm:.1f} cm\n"
             f"   New (48h):  {_cm_to_in(snow.new_48h_cm):.1f}\" / {snow.new_48h_cm:.1f} cm\n"
             f"   New (72h):  {_cm_to_in(snow.new_72h_cm):.1f}\" / {snow.new_72h_cm:.1f} cm"
+            f"{swe_str}"
         )
         return _truncate(text)
 

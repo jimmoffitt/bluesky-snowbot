@@ -18,10 +18,13 @@ class ResortLocation:
     name: str           # Display name, e.g. "Vail Ski Resort"
     lat: float
     lon: float
-    state: str          # Two-letter state/province code, e.g. "CO"
+    state: str          # Two-letter state/province/region code, e.g. "CO"
     country: str = "US"
     elevation_m: Optional[float] = None
+    postal_code: Optional[str] = None     # ZIP / postal code for the resort area
     snocountry_id: Optional[int] = None   # SnoCountry numeric resort ID
+    snotel_triplet: Optional[str] = None  # AWDB station triplet, e.g. "842:CO:SNTL"
+    snotel_dist_mi: Optional[float] = None  # Distance from resort to SNOTEL station
 
 
 @dataclass
@@ -96,6 +99,23 @@ class ResortOperations:
 
 
 @dataclass
+class DailyForecast:
+    """
+    One day of forecast (or history) data from Open-Meteo daily variables.
+    All temperatures in °C, snowfall/precip in cm, wind in km/h.
+    """
+    date: str               # ISO date string e.g. "2026-03-20"
+    snowfall_cm: float
+    temp_max_c: float
+    temp_min_c: float
+    weather_code: int
+    weather_desc: str
+    precip_cm: float
+    wind_max_kmh: float
+    is_forecast: bool = True   # False for past days, True for today and future
+
+
+@dataclass
 class ConditionsReport:
     """Current weather conditions from Open-Meteo."""
     temp_c: float
@@ -107,6 +127,21 @@ class ConditionsReport:
 
 
 @dataclass
+class SnotelReading:
+    """
+    Current SNOTEL station readings (snow depth + SWE) from the NRCS AWDB API.
+    Values stored in both inches (source units) and cm (display).
+    """
+    triplet: str                          # e.g. "780:CO:SNTL"
+    station_name: str
+    elevation_ft: int
+    snow_depth_in: Optional[float] = None  # SNWD — inches on ground
+    swe_in: Optional[float] = None         # WTEQ — snow water equivalent
+    snow_depth_cm: Optional[float] = None
+    swe_cm: Optional[float] = None
+
+
+@dataclass
 class SnowReport:
     """
     Complete snow conditions report for a single resort.
@@ -115,11 +150,16 @@ class SnowReport:
     operations is populated when a SnoCountry key is configured and
     the resort has a known snocountry_id. When present it takes
     precedence over snow (depth/accumulation) in the formatter.
+
+    snotel is populated when the resort has a known snotel_triplet.
+    It provides observed snow depth and SWE from the nearest SNOTEL station.
     """
     location: ResortLocation
     snow: SnowDepthReport              # Open-Meteo (fallback / weather supplement)
     conditions: ConditionsReport       # Open-Meteo (temp, wind, sky)
     operations: Optional[ResortOperations] = None   # SnoCountry (resort-reported)
+    snotel: Optional[SnotelReading] = None          # NRCS AWDB (observed snow depth/SWE)
+    forecast: list = field(default_factory=list)    # list[DailyForecast] — 7-day outlook
     fetched_at: datetime = field(default_factory=datetime.utcnow)
     data_source: str = "Open-Meteo"
 
@@ -159,3 +199,17 @@ WMO_DESCRIPTIONS: dict[int, str] = {
 
 def wmo_description(code: int) -> str:
     return WMO_DESCRIPTIONS.get(code, f"Unknown (WMO {code})")
+
+
+def wmo_emoji(code: int) -> str:
+    """Single emoji summarising a WMO weather code — used in compact forecast rows."""
+    if code == 0:                    return "☀️"
+    if code in (1, 2):               return "⛅"
+    if code == 3:                    return "☁️"
+    if code in (45, 48):             return "🌫️"
+    if 51 <= code <= 67:             return "🌧️"
+    if code in (71, 73, 75, 77):     return "❄️"
+    if code in (80, 81, 82):         return "🌧️"
+    if code in (85, 86):             return "🌨️"
+    if code in (95, 96, 99):         return "⛈️"
+    return "🌤️"
