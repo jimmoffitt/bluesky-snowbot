@@ -49,6 +49,9 @@ class NotificationPayload:
     # "bluesky_post" | "bluesky_dm"
     target_channel: str = "bluesky_post"
 
+    # Optional image attachment (local file path — DM channel uploads as blob)
+    attachment_path: Optional[str] = None
+
     created_at: datetime = field(default_factory=datetime.utcnow)
 
 

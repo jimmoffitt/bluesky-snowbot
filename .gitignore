@@ -11,8 +11,8 @@ build/
 .local.env
 *.env
 
-# Data / runtime
-data/
+# Data / runtime (root-level only — bluesky_snowbot/data/*.csv are committed)
+/data/
 logs/
 inbox/archive/
 inbox/errors/

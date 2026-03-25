@@ -15,6 +15,7 @@ Dependencies: pip install atproto
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Optional
 
@@ -76,10 +77,17 @@ class BlueskyDMNotifyChannel(NotificationChannel):
                 error="No convo_id and no recipient_handle",
             )
 
+        # Build image embed if attachment provided
+        embed = None
+        if payload.attachment_path:
+            embed = self._upload_image(payload.attachment_path,
+                                       alt=payload.post_thread[0] if payload.post_thread else "")
+
         sent_any = False
         for i, text in enumerate(messages):
             try:
-                self._send_message(convo_id, text)
+                msg_embed = embed if i == 0 else None  # attach image to first message only
+                self._send_message(convo_id, text, embed=msg_embed)
                 sent_any = True
                 logger.info("[bluesky_dm] Sent message %d/%d to convo %s",
                             i + 1, len(messages), convo_id)
@@ -124,14 +132,35 @@ class BlueskyDMNotifyChannel(NotificationChannel):
             logger.error("[bluesky_dm] Could not get/create convo with %s: %s", handle, exc)
             return None
 
-    def _send_message(self, convo_id: str, text: str) -> None:
+    def _upload_image(self, path: str, alt: str = "") -> Optional[object]:
+        """Upload a local image file and return an AppBskyEmbedImages embed, or None on failure."""
+        try:
+            from atproto import models as atproto_models
+            with open(path, "rb") as f:
+                blob_resp = self._client.upload_blob(f.read())
+            return atproto_models.AppBskyEmbedImages.Main(
+                images=[atproto_models.AppBskyEmbedImages.Image(
+                    image=blob_resp.blob,
+                    alt=alt[:1000],
+                )]
+            )
+        except Exception as exc:
+            logger.warning("[bluesky_dm] Image upload failed for %s: %s", path, exc)
+            return None
+
+    def _send_message(self, convo_id: str, text: str, embed=None) -> None:
         if self._chat_client is None:
             raise RuntimeError("Not authenticated")
         from atproto import models as atproto_models
+        facets = _build_link_facets(text)
         self._chat_client.chat.bsky.convo.send_message(
             atproto_models.ChatBskyConvoSendMessage.Data(
                 convo_id=convo_id,
-                message=atproto_models.ChatBskyConvoDefs.MessageInput(text=text),
+                message=atproto_models.ChatBskyConvoDefs.MessageInput(
+                    text=text,
+                    facets=facets if facets else None,
+                    embed=embed,
+                ),
             )
         )
 
@@ -158,3 +187,29 @@ class BlueskyDMNotifyChannel(NotificationChannel):
         if current:
             chunks.append(current)
         return chunks
+
+
+_URL_RE = re.compile(r'https?://\S+')
+
+
+def _build_link_facets(text: str) -> list:
+    """Return a list of AppBskyRichtextFacet.Main for every URL found in text."""
+    try:
+        from atproto import models as atproto_models
+    except ImportError:
+        return []
+    facets = []
+    text_bytes = text.encode("utf-8")
+    for match in _URL_RE.finditer(text):
+        byte_start = len(text[:match.start()].encode("utf-8"))
+        byte_end   = len(text[:match.end()].encode("utf-8"))
+        facets.append(
+            atproto_models.AppBskyRichtextFacet.Main(
+                index=atproto_models.AppBskyRichtextFacet.ByteSlice(
+                    byte_start=byte_start,
+                    byte_end=byte_end,
+                ),
+                features=[atproto_models.AppBskyRichtextFacet.Link(uri=match.group())],
+            )
+        )
+    return facets

@@ -469,16 +469,34 @@ _RESORTS: list[dict] = [
 # State / region index — built once at import time
 # ---------------------------------------------------------------------------
 
-def get_resorts_by_state() -> dict[str, list[dict]]:
-    """Returns {state_code: [resort_entries]} — states sorted, resorts alpha within."""
+REGION_GROUPS: dict[str, list[str]] = {
+    "US Rockies":       ["CO", "ID", "MT", "NM", "UT", "WY"],
+    "US West Coast":    ["AK", "CA", "NV", "OR", "WA"],
+    "US East":          ["ME", "MN", "NH", "VT"],
+    "Canadian Rockies": ["AB", "BC", "QC"],
+    "Japan":            ["HK", "NG", "NI"],
+    "Europe":           ["FR", "CH", "AT", "IT", "AD"],
+    "New Zealand":      ["NZ"],
+}
+
+
+def get_resorts_by_region() -> dict[str, list[dict]]:
+    """Returns {region_name: [resort_entries]} — resorts sorted alpha within each region."""
     from collections import defaultdict
-    grouped: dict[str, list] = defaultdict(list)
+    by_state: dict[str, list] = defaultdict(list)
     for entry in _RESORTS:
-        grouped[entry["state"]].append(entry)
-    return {k: sorted(v, key=lambda e: e["display"]) for k, v in sorted(grouped.items())}
+        by_state[entry["state"]].append(entry)
+    result = {}
+    for region, states in REGION_GROUPS.items():
+        resorts = []
+        for state in states:
+            resorts.extend(by_state.get(state, []))
+        if resorts:
+            result[region] = sorted(resorts, key=lambda e: e["display"])
+    return result
 
 
-_RESORTS_BY_STATE: dict[str, list[dict]] = get_resorts_by_state()
+_RESORTS_BY_REGION: dict[str, list[dict]] = get_resorts_by_region()
 
 # Build a fast lookup map from canonical name strings
 _LOOKUP: dict[str, dict] = {}

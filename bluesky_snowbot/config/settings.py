@@ -49,6 +49,12 @@ class Settings:
     # SnoCountry mock mode (dev/testing without a real API key)
     snocountry_mock: bool
 
+    # Photos directory (local path, not stored in git)
+    photos_path: Path
+
+    # DM polling interval (seconds)
+    dm_poll_interval_sec: float
+
     # DM session TTL — how long a menu navigation session stays active (minutes)
     dm_session_ttl_minutes: int
 
@@ -93,6 +99,8 @@ class Settings:
             snow_cache_ttl_minutes=opt_int("SNOW_CACHE_TTL_MINUTES", 30),
             snocountry_key=opt("SNOCOUNTRY_KEY") or None,
             snocountry_mock=opt("SNOCOUNTRY_MOCK", "false").lower() in ("1", "true", "yes"),
+            photos_path=Path(opt("PHOTOS_PATH", "bluesky_snowbot/data/photos")),
+            dm_poll_interval_sec=opt_float("DM_POLL_INTERVAL_SEC", 5.0),
             dm_session_ttl_minutes=opt_int("DM_SESSION_TTL_MINUTES", 30),
             server_type=opt("SERVER_TYPE", "laptop"),
         )

@@ -47,10 +47,11 @@ class Playlist:
 class Photo:
     filename: str
     caption: str
+    photos_dir: Path = _DATA_DIR / "photos"
 
     @property
     def path(self) -> Path:
-        return _DATA_DIR / "photos" / self.filename
+        return self.photos_dir / self.filename
 
 
 # ---------------------------------------------------------------------------
@@ -90,23 +91,24 @@ def load_playlists(path: Path = _DATA_DIR / "playlists.csv") -> list[Playlist]:
     return playlists
 
 
-def load_photos(path: Path = _DATA_DIR / "photos.csv") -> list[Photo]:
+def load_photos(csv_path: Path = _DATA_DIR / "photos.csv",
+                photos_dir: Path = _DATA_DIR / "photos") -> list[Photo]:
     """Load photo list from photos.csv (semicolon-delimited: filename; caption)."""
     photos = []
     try:
-        with open(path, newline="", encoding="utf-8") as f:
+        with open(csv_path, newline="", encoding="utf-8") as f:
             for row in csv.reader(f, delimiter=";"):
                 if len(row) < 2:
                     continue
                 filename, caption = row[0].strip(), row[1].strip()
                 if filename:
-                    p = Photo(filename=filename, caption=caption)
+                    p = Photo(filename=filename, caption=caption, photos_dir=photos_dir)
                     if p.path.exists():
                         photos.append(p)
                     else:
-                        logger.debug("[content] Photo file missing: %s", filename)
+                        logger.debug("[content] Photo file missing: %s", p.path)
     except FileNotFoundError:
-        logger.warning("[content] photos.csv not found at %s", path)
+        logger.warning("[content] photos.csv not found at %s", csv_path)
     return photos
 
 
@@ -131,10 +133,10 @@ class ContentLibrary:
         self._photos    = photos
 
     @classmethod
-    def load(cls) -> "ContentLibrary":
+    def load(cls, photos_dir: Optional[Path] = None) -> "ContentLibrary":
         links     = load_links()
         playlists = load_playlists()
-        photos    = load_photos()
+        photos    = load_photos(photos_dir=photos_dir or _DATA_DIR / "photos")
         logger.info("[content] Loaded %d links, %d playlists, %d photos",
                     len(links), len(playlists), len(photos))
         return cls(links=links, playlists=playlists, photos=photos)

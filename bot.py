@@ -45,12 +45,12 @@ from bluesky_snowbot.channels.notify.bluesky_post import BlueskyPostNotifyChanne
 from bluesky_snowbot.config.settings import Settings
 from bluesky_snowbot.content import ContentLibrary
 from bluesky_snowbot.menu import (
-    STATE_NAMES, classify_menu_input, format_help, format_learn_menu,
+    classify_menu_input, format_help, format_learn_menu,
     format_link_detail, format_main_menu, format_photo_caption,
-    format_playlist_detail, format_playlist_menu, format_resorts_menu,
-    format_states_menu, is_menu_trigger,
+    format_playlist_detail, format_playlist_menu, format_regions_menu,
+    format_resorts_menu, is_menu_trigger,
 )
-from bluesky_snowbot.snow.resolver import _RESORTS_BY_STATE
+from bluesky_snowbot.snow.resolver import _RESORTS_BY_REGION
 from bluesky_snowbot.snow.formatter import SnowFormatter
 from bluesky_snowbot.snow.service import SnowService
 from bluesky_snowbot.storage.db import Database
@@ -70,7 +70,7 @@ class SnowBot:
         self._settings  = settings
         self._db        = Database(path=settings.db_path)
         self._formatter = SnowFormatter()
-        self._content   = ContentLibrary.load()
+        self._content   = ContentLibrary.load(photos_dir=settings.photos_path)
         self._snow      = SnowService(
             db=self._db,
             cache_ttl_minutes=settings.snow_cache_ttl_minutes,
@@ -160,14 +160,7 @@ class SnowBot:
         if request.source_channel == "dm" and not request.command:
             raw = request.raw_content.strip()
 
-            # Named keyword → branch (takes priority over session)
-            branch = classify_menu_input(raw)
-            if branch:
-                self._handle_menu_branch(request, branch)
-                self._db.update_request_status(db_id, "complete")
-                return
-
-            # Numeric selection within active session
+            # Numeric selection within active session (takes priority over menu triggers)
             if raw.isdigit() and request.requester_did:
                 session = self._db.get_dm_session(
                     request.requester_did, self._settings.dm_session_ttl_minutes
@@ -175,6 +168,13 @@ class SnowBot:
                 if session and self._handle_session_selection(request, session, int(raw)):
                     self._db.update_request_status(db_id, "complete")
                     return
+
+            # Named keyword → menu branch
+            branch = classify_menu_input(raw)
+            if branch:
+                self._handle_menu_branch(request, branch)
+                self._db.update_request_status(db_id, "complete")
+                return
 
         # Home location fallback for DMs with no explicit location
         if not request.raw_location and request.source_channel == "dm" and request.requester_did:
@@ -355,15 +355,16 @@ class SnowBot:
             # If user has a home state saved, jump straight to that state's resorts
             prefs = self._db.get_user_prefs(did) if did else None
             home_state = prefs.get("home_state") if prefs else None
-            if home_state and home_state in _RESORTS_BY_STATE:
-                resorts = _RESORTS_BY_STATE[home_state]
+            if home_state and home_state in _RESORTS_BY_REGION:
+                resorts = _RESORTS_BY_REGION[home_state]
                 if did:
                     self._db.set_dm_session(did, "resorts", state=home_state)
-                self._send_dm_reply(request, format_resorts_menu(home_state, resorts))
+                for _msg in format_resorts_menu(home_state, resorts):
+                    self._send_dm_reply(request, _msg)
             else:
                 if did:
-                    self._db.set_dm_session(did, "states")
-                for _msg in format_states_menu(_RESORTS_BY_STATE):
+                    self._db.set_dm_session(did, "regions")
+                for _msg in format_regions_menu(_RESORTS_BY_REGION):
                     self._send_dm_reply(request, _msg)
 
         elif branch == "back":
@@ -371,8 +372,8 @@ class SnowBot:
 
         elif branch == "change_state":
             if did:
-                self._db.set_dm_session(did, "states")
-            for _msg in format_states_menu(_RESORTS_BY_STATE):
+                self._db.set_dm_session(did, "regions")
+            for _msg in format_regions_menu(_RESORTS_BY_REGION):
                 self._send_dm_reply(request, _msg)
 
         elif branch == "learn":
@@ -411,11 +412,11 @@ class SnowBot:
         elif session["menu"] == "resorts":
             # Back from resort list → states menu
             if did:
-                self._db.set_dm_session(did, "states")
-            for _msg in format_states_menu(_RESORTS_BY_STATE):
+                self._db.set_dm_session(did, "regions")
+            for _msg in format_regions_menu(_RESORTS_BY_REGION):
                 self._send_dm_reply(request, _msg)
 
-        elif session["menu"] == "states":
+        elif session["menu"] == "regions":
             # Back from states menu → main menu
             if did:
                 self._db.clear_dm_session(did)
@@ -435,22 +436,23 @@ class SnowBot:
         did  = request.requester_did
         menu = session.get("menu")
 
-        if menu == "states":
-            states = list(_RESORTS_BY_STATE.keys())
-            if not 1 <= index <= len(states):
+        if menu == "regions":
+            regions = list(_RESORTS_BY_REGION.keys())
+            if not 1 <= index <= len(regions):
                 self._send_dm_reply(request,
-                    f"Please reply with a number between 1 and {len(states)}.")
+                    f"Please reply with a number between 1 and {len(regions)}.")
                 return True
-            state_code = states[index - 1]
-            resorts = _RESORTS_BY_STATE[state_code]
+            region = regions[index - 1]
+            resorts = _RESORTS_BY_REGION[region]
             if did:
-                self._db.set_dm_session(did, "resorts", state=state_code)
-            self._send_dm_reply(request, format_resorts_menu(state_code, resorts))
+                self._db.set_dm_session(did, "resorts", state=region)
+            for _msg in format_resorts_menu(region, resorts):
+                self._send_dm_reply(request, _msg)
             return True
 
         elif menu == "resorts":
-            state_code = session.get("state", "")
-            resorts = _RESORTS_BY_STATE.get(state_code, [])
+            region = session.get("state", "")
+            resorts = _RESORTS_BY_REGION.get(region, [])
             if not 1 <= index <= len(resorts):
                 self._send_dm_reply(request,
                     f"Please reply with a number between 1 and {len(resorts)}.")
@@ -479,24 +481,26 @@ class SnowBot:
     def _send_photo_dm(self, request: AlertRequest, photo) -> None:
         """Send a photo + caption as a DM. Falls back to caption-only if upload fails."""
         channel = self._notify_channels.get("bluesky_dm")
-        if channel and hasattr(channel, "send_photo"):
-            try:
-                payload = NotificationPayload(
-                    request_db_id=request.db_id,
-                    post_thread=[format_photo_caption(photo)],
-                    reply_to_uri=request.reply_to_uri,
-                    recipient_handle=request.requester_handle,
-                    target_channel="bluesky_dm",
-                    attachment_path=str(photo.path),
-                )
-                channel.send(payload)
+        if channel:
+            payload = NotificationPayload(
+                request_db_id=request.db_id,
+                post_thread=[format_photo_caption(photo)],
+                reply_to_uri=request.reply_to_uri,
+                recipient_handle=request.requester_handle,
+                target_channel="bluesky_dm",
+                attachment_path=str(photo.path),
+            )
+            result = channel.send(payload)
+            if result.success:
                 return
-            except Exception as exc:
-                logger.warning("[bot] Photo send failed: %s", exc)
         # Fallback: caption only
         self._send_dm_reply(request, format_photo_caption(photo))
 
     def _send_dm_reply(self, request: AlertRequest, message: str) -> None:
+        elapsed = (datetime.utcnow() - request.received_at).total_seconds()
+        footer = f"\n\n({elapsed:.1f}s on {self._settings.server_type})"
+        if len(message) + len(footer) <= 300:
+            message = message + footer
         payload = NotificationPayload(
             request_db_id=request.db_id,
             post_thread=[message],
@@ -605,7 +609,8 @@ def build_bot(settings: Settings) -> SnowBot:
 
     bot.register_alert_channel(FileWatcherAlertChannel(settings))
     bot.register_alert_channel(FirehoseAlertChannel(settings))
-    bot.register_alert_channel(DMAlertChannel(settings, db=bot._db))
+    bot.register_alert_channel(DMAlertChannel(settings, db=bot._db,
+                                               poll_interval=settings.dm_poll_interval_sec))
 
     bot.register_notify_channel(
         BlueskyPostNotifyChannel(settings.bluesky_handle, settings.bluesky_app_password)
