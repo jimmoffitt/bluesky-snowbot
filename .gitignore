@@ -27,6 +27,9 @@ inbox/errors/
 .vscode/settings.json
 .idea/
 
+# AI
+CLAUDE.md
+
 # Test cache
 .pytest_cache/
 .coverage
