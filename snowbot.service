@@ -1,13 +1,13 @@
 [Unit]
-Description=SnowBot — Bluesky ski resort snow conditions bot
+Description=Snowbot — Bluesky snow resort conditions bot
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/projects/snowbot
-ExecStart=/home/pi/projects/snowbot/.venv/bin/python main.py
+User=jim
+WorkingDirectory=/home/jim/projects/bluesky_snowbot
+ExecStart=/home/jim/projects/bluesky_snowbot/.venv/bin/python main.py
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -15,7 +15,7 @@ StandardError=journal
 SyslogIdentifier=snowbot
 
 # Environment file with BSKY_HANDLE, BSKY_APP_PASSWORD, etc.
-EnvironmentFile=/home/pi/projects/snowbot/.local.env
+EnvironmentFile=/home/jim/projects/bluesky_snowbot/.local.env
 
 [Install]
 WantedBy=multi-user.target
