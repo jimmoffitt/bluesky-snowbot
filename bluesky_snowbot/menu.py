@@ -9,7 +9,7 @@ Main menu options:
   5. Help / About
 
 Each option maps to a keyword the user can send (number or word).
-Responses are kept to ≤300 chars per Bluesky post limit, split into
+Responses are kept to ≤1000 chars (Bluesky DM limit), split into
 multiple messages when needed.
 """
 
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 
+from bluesky_snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS
 from bluesky_snowbot.content import ContentLibrary
 from bluesky_snowbot.snow.resolver import snotel_icon
 
@@ -246,19 +247,19 @@ def format_help() -> str:
 # ---------------------------------------------------------------------------
 
 def _pack_lines(header: str, lines: list[str], footer: str = "") -> list[str]:
-    """Pack lines into messages of ≤300 chars, with header on first message."""
+    """Pack lines into DMs of ≤DM_MAX_CHARS, with header on first message."""
     messages = []
     current = header
     for line in lines:
         candidate = current + line + "\n"
-        if len(candidate) + len(footer) > 300 and current != header:
+        if len(candidate) + len(footer) > DM_MAX_CHARS and current != header:
             messages.append(current.rstrip())
             current = line + "\n"
         else:
             current = candidate
     if current.strip():
         current = current.rstrip()
-        if footer and len(current) + len(footer) <= 300:
+        if footer and len(current) + len(footer) <= DM_MAX_CHARS:
             current += footer
         messages.append(current)
     return messages

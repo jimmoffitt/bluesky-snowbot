@@ -143,3 +143,16 @@ def test_resort_name_beats_keyword(bot):
     _dm(bot, "photos from vail")   # names a resort → snow report, not a photo
     assert bot.lookups == ["photos from vail"]
     assert bot.post.photos == []
+
+
+@pytest.mark.parametrize("text", ["learn", "music", "menu"])
+def test_menus_arrive_as_one_dm(bot, text):
+    _dm(bot, text)
+    assert len(bot.dm.sent) == 1
+
+
+def test_large_resort_list_is_one_dm(bot):
+    for text in ("menu", "1", "1"):   # US Rockies, the longest resort list
+        _dm(bot, text)
+    assert bot.dm.sent[-1].startswith("🎿 US Rockies resorts")
+    assert len(bot.dm.sent[-1]) <= 1000

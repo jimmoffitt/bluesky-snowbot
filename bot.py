@@ -40,7 +40,7 @@ from bluesky_snowbot.channels.alert.firehose import FirehoseAlertChannel
 from bluesky_snowbot.channels.notify.base import (
     NotificationChannel, NotificationPayload,
 )
-from bluesky_snowbot.channels.notify.bluesky_dm import BlueskyDMNotifyChannel
+from bluesky_snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS, BlueskyDMNotifyChannel
 from bluesky_snowbot.channels.notify.bluesky_post import BlueskyPostNotifyChannel
 from bluesky_snowbot.config.settings import Settings
 from bluesky_snowbot.content import ContentLibrary
@@ -544,7 +544,7 @@ class Snowbot:
     def _send_dm_reply(self, request: AlertRequest, message: str) -> None:
         elapsed = (datetime.utcnow() - request.received_at).total_seconds()
         footer = f"\n\n({elapsed:.1f}s on {self._settings.server_type})"
-        if len(message) + len(footer) <= 300:
+        if len(message) + len(footer) <= DM_MAX_CHARS:
             message = message + footer
         payload = NotificationPayload(
             request_db_id=request.db_id,
