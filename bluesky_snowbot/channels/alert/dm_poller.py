@@ -38,6 +38,8 @@ DEFAULT_POLL_INTERVAL   = 5.0    # idle
 DEFAULT_ACTIVE_INTERVAL = 1.0    # while a conversation is active
 DEFAULT_ACTIVE_WINDOW   = 120.0  # stay fast this long after the last incoming DM
 
+_LOG_CREATE_MESSAGE = "chat.bsky.convo.defs#logCreateMessage"
+
 
 class DMAlertChannel(AlertChannel):
     """
@@ -141,24 +143,18 @@ class DMAlertChannel(AlertChannel):
         if self._chat_client is None:
             return 0
 
-        from atproto import models as atproto_models
-
         try:
-            params = atproto_models.ChatBskyConvoGetLog.Params(cursor=self._cursor)
-            resp = self._chat_client.chat.bsky.convo.get_log(params=params)
+            cursor, logs = self._fetch_log()
         except Exception as exc:
             logger.warning("[dm] get_log failed: %s", exc)
             return 0
 
-        if resp.cursor:
-            self._cursor = resp.cursor
+        if cursor:
+            self._cursor = cursor
 
         incoming = 0
-        for log in resp.logs:
+        for log in logs:
             try:
-                if not isinstance(log, atproto_models.ChatBskyConvoDefs.LogCreateMessage):
-                    continue
-
                 msg = log.message
                 if getattr(getattr(msg, "sender", None), "did", "") == self._own_did:
                     continue
@@ -192,6 +188,32 @@ class DMAlertChannel(AlertChannel):
             except Exception as exc:
                 logger.debug("[dm] Skipping malformed log entry: %s", exc)
         return incoming
+
+    def _fetch_log(self) -> tuple[Optional[str], list]:
+        """
+        Fetch chat log entries since the cursor; return (cursor, LogCreateMessage models).
+
+        The response is parsed per entry rather than as a whole: Bluesky adds new
+        log types (e.g. logReadConvo) before the SDK knows them, and one unknown
+        entry would otherwise fail the whole response and stall the cursor.
+        """
+        from atproto import models as atproto_models
+
+        params = atproto_models.ChatBskyConvoGetLog.Params(cursor=self._cursor)
+        resp = self._chat_client.invoke_query(
+            "chat.bsky.convo.getLog", params=params, output_encoding="application/json",
+        )
+        content = resp.content if isinstance(resp.content, dict) else {}
+
+        logs = []
+        for entry in content.get("logs", []):
+            if not isinstance(entry, dict) or entry.get("$type") != _LOG_CREATE_MESSAGE:
+                continue  # read receipts, reactions, convo events, unknown future types
+            try:
+                logs.append(atproto_models.ChatBskyConvoDefs.LogCreateMessage.model_validate(entry))
+            except Exception as exc:
+                logger.warning("[dm] Skipping unparseable message log entry: %s", exc)
+        return content.get("cursor"), logs
 
     # ------------------------------------------------------------------
     # Deduplication helpers
