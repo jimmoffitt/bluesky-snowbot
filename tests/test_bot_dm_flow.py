@@ -101,3 +101,21 @@ def test_public_mention_chatter_gets_no_reply(bot, text):
         reply_to_uri=f"at://did:plc:tester/app.bsky.feed.post/{abs(hash(text))}", reply_to_cid="cid",
     ))
     assert bot.post.sent == [] and bot.dm.sent == []
+
+
+def test_resort_list_dropped_after_report(bot):
+    _dm(bot, "menu")
+    _dm(bot, "1")   # regions
+    _dm(bot, "2")   # second region's resorts
+    _dm(bot, "3")   # resort pick → lookup
+    _dm(bot, "1")   # now means main-menu "Snow reports", not resort #1
+    assert len(bot.lookups) == 1
+    assert any(m.startswith("🎿 Select a region") for m in bot.dm.sent[-2:])
+
+
+def test_back_after_report_reopens_resort_list(bot):
+    from bluesky_snowbot.snow.resolver import _RESORTS_BY_REGION
+    region = list(_RESORTS_BY_REGION)[1]
+    for text in ("menu", "1", "2", "3", "back"):
+        _dm(bot, text)
+    assert any(m.startswith(f"🎿 {region} resorts") for m in bot.dm.sent[-3:])

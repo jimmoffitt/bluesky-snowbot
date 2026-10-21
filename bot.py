@@ -159,11 +159,11 @@ class Snowbot:
             return
 
         # Menu / session navigation (DM only)
+        resort_selected = False
         if request.source_channel == "dm" and not request.command:
             raw = request.raw_content.strip()
 
             # Numeric selection within active session (takes priority over menu triggers)
-            resort_selected = False
             if raw.isdigit() and request.requester_did:
                 session = self._db.get_dm_session(
                     request.requester_did, self._settings.dm_session_ttl_minutes
@@ -238,6 +238,8 @@ class Snowbot:
         # Format
         self._db.update_request_formatting_start(db_id)
         thread_posts = self._formatter.format_thread(report)
+        if resort_selected:
+            _append_if_fits(thread_posts, "\n\nReply 'back' for the resort list.")
         _append_latency_footer(thread_posts, request.received_at, self._settings.server_type)
 
         target_channel = self._route(request)
@@ -424,6 +426,15 @@ class Snowbot:
                 self._db.clear_dm_session(did)
             self._send_dm_reply(request, format_main_menu())
 
+        elif session["menu"] == "report":
+            # Back from a report picked off a resort list → that resort list
+            region = session.get("state", "")
+            resorts = _RESORTS_BY_REGION.get(region, [])
+            if did:
+                self._db.set_dm_session(did, "resorts", state=region)
+            for _msg in format_resorts_menu(region, resorts):
+                self._send_dm_reply(request, _msg)
+
         elif session["menu"] == "resorts":
             # Back from resort list → states menu
             if did:
@@ -473,7 +484,10 @@ class Snowbot:
                     f"Please reply with a number between 1 and {len(resorts)}.")
                 return True
             resort_entry = resorts[index - 1]
-            # Keep session as-is so "back" returns to this resort list
+            # Drop the numbered list so later bare numbers mean the main menu again,
+            # but remember the region so "back" can reopen it
+            if did:
+                self._db.set_dm_session(did, "report", state=region)
             request.raw_location = resort_entry["display"]
             return False  # fall through to normal snow lookup
 
@@ -607,6 +621,11 @@ def _uri_to_url(uri: Optional[str], handle: Optional[str]) -> Optional[str]:
         return f"https://bsky.app/profile/{handle}/post/{rkey}"
     except Exception:
         return None
+
+
+def _append_if_fits(thread_posts: list[str], text: str) -> None:
+    if len(thread_posts[-1]) + len(text) <= 300:
+        thread_posts[-1] += text
 
 
 def _append_latency_footer(thread_posts: list[str], received_at: datetime,
