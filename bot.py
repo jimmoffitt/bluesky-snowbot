@@ -527,7 +527,8 @@ class Snowbot:
                 mention_did=request.requester_did or "",
             )
             logger.info("[bot] Posted photo publicly: %s", uri)
-            post_url = _uri_to_url(uri, request.requester_handle)
+            # The post lives on the bot's own profile, not the requester's
+            post_url = _uri_to_url(uri, self._settings.bluesky_handle)
             msg = f"📸 Just posted a snow photo for you!\n\n{post_url}" if post_url else "📸 Just posted a snow photo for you!"
             self._send_dm_reply(request, msg)
         except Exception as exc:

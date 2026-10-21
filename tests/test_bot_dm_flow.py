@@ -66,6 +66,8 @@ def test_photos_from_main_menu(bot):
     _dm(bot, "menu")
     _dm(bot, "3")
     assert len(bot.post.photos) == 1
+    # Link must point at the bot's profile, where the post lives
+    assert f"https://bsky.app/profile/{bot._settings.bluesky_handle}/post/abc" in bot.dm.sent[-1]
 
 
 def test_set_state_and_settings(bot):
