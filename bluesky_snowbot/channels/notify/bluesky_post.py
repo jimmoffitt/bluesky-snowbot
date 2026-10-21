@@ -156,3 +156,52 @@ class BlueskyPostNotifyChannel(NotificationChannel):
             reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(root=root, parent=parent)
 
         return self._client.send_post(text=text, reply_to=reply_ref)
+
+    def post_photo(self, photo_path: str, caption: str,
+                   mention_handle: str = "", mention_did: str = "") -> Optional[str]:
+        """Post a photo publicly, optionally mentioning a user. Returns the post URI."""
+        if self._client is None:
+            raise RuntimeError("Not authenticated")
+        from atproto import models as atproto_models
+        with open(photo_path, "rb") as f:
+            img_data = f.read()
+
+        # Build text: "@handle 📸 caption #Snowbot"
+        hashtag  = "#Snowbot"
+        body     = f"📸 {caption}"
+        facets   = []
+
+        if mention_handle and mention_did:
+            mention_str  = f"@{mention_handle}"   # no trailing space in facet range
+            text         = f"{mention_str} {body} {hashtag}"
+            mention_end  = len(mention_str.encode("utf-8"))
+            facets.append(
+                atproto_models.AppBskyRichtextFacet.Main(
+                    index=atproto_models.AppBskyRichtextFacet.ByteSlice(
+                        byte_start=0, byte_end=mention_end,
+                    ),
+                    features=[atproto_models.AppBskyRichtextFacet.Mention(did=mention_did)],
+                )
+            )
+        else:
+            text = f"{body} {hashtag}"
+
+        # Tag facet for #Snowbot
+        tag_start = len(text.encode("utf-8")) - len(hashtag.encode("utf-8"))
+        tag_end   = len(text.encode("utf-8"))
+        facets.append(
+            atproto_models.AppBskyRichtextFacet.Main(
+                index=atproto_models.AppBskyRichtextFacet.ByteSlice(
+                    byte_start=tag_start, byte_end=tag_end,
+                ),
+                features=[atproto_models.AppBskyRichtextFacet.Tag(tag="Snowbot")],
+            )
+        )
+
+        resp = self._client.send_image(
+            text=text[:300],
+            image=img_data,
+            image_alt=caption,
+            facets=facets,
+        )
+        return getattr(resp, "uri", None)

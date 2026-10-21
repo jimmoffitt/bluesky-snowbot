@@ -1,5 +1,5 @@
 """
-SnowBot — top-level orchestrator.
+Snowbot — top-level orchestrator.
 
 Wires alert channels → snow service → notification channels.
 
@@ -46,11 +46,13 @@ from bluesky_snowbot.config.settings import Settings
 from bluesky_snowbot.content import ContentLibrary
 from bluesky_snowbot.menu import (
     classify_menu_input, format_help, format_learn_menu,
-    format_link_detail, format_main_menu, format_photo_caption,
+    format_link_detail, format_main_menu,
+    format_photo_caption,
     format_playlist_detail, format_playlist_menu, format_regions_menu,
-    format_resorts_menu, is_menu_trigger,
+    format_resorts_menu, format_small_talk_reply, is_menu_trigger, is_small_talk,
+    STATE_NAMES,
 )
-from bluesky_snowbot.snow.resolver import _RESORTS_BY_REGION
+from bluesky_snowbot.snow.resolver import REGION_GROUPS, _RESORTS_BY_REGION
 from bluesky_snowbot.snow.formatter import SnowFormatter
 from bluesky_snowbot.snow.service import SnowService
 from bluesky_snowbot.storage.db import Database
@@ -58,7 +60,7 @@ from bluesky_snowbot.storage.db import Database
 logger = logging.getLogger(__name__)
 
 
-class SnowBot:
+class Snowbot:
     """
     Assembles and runs the full bot pipeline.
 
@@ -106,7 +108,7 @@ class SnowBot:
         self._running = True
         for ch in self._alert_channels:
             ch.start()
-        logger.info("SnowBot running. %d alert channel(s), %d notify channel(s).",
+        logger.info("Snowbot running. %d alert channel(s), %d notify channel(s).",
                     len(self._alert_channels), len(self._notify_channels))
         if block:
             self._block_until_signal()
@@ -115,14 +117,14 @@ class SnowBot:
         if not self._running:
             return
         self._running = False
-        logger.info("SnowBot shutting down...")
+        logger.info("Snowbot shutting down...")
         for ch in self._alert_channels:
             try:
                 ch.stop()
             except Exception as exc:
                 logger.warning("Error stopping %s: %s", ch, exc)
         self._db.close()
-        logger.info("SnowBot stopped.")
+        logger.info("Snowbot stopped.")
 
     # ------------------------------------------------------------------
     # Request handler
@@ -161,6 +163,7 @@ class SnowBot:
             raw = request.raw_content.strip()
 
             # Numeric selection within active session (takes priority over menu triggers)
+            resort_selected = False
             if raw.isdigit() and request.requester_did:
                 session = self._db.get_dm_session(
                     request.requester_did, self._settings.dm_session_ttl_minutes
@@ -168,9 +171,17 @@ class SnowBot:
                 if session and self._handle_session_selection(request, session, int(raw)):
                     self._db.update_request_status(db_id, "complete")
                     return
+                # A resort pick sets raw_location and falls through to the snow lookup
+                resort_selected = session is not None and session.get("menu") == "resorts"
+
+            # Small talk → short nudge instead of a geocoded "location"
+            if not resort_selected and is_small_talk(raw):
+                self._send_dm_reply(request, format_small_talk_reply())
+                self._db.update_request_status(db_id, "complete")
+                return
 
             # Named keyword → menu branch
-            branch = classify_menu_input(raw)
+            branch = None if resort_selected else classify_menu_input(raw)
             if branch:
                 self._handle_menu_branch(request, branch)
                 self._db.update_request_status(db_id, "complete")
@@ -197,7 +208,9 @@ class SnowBot:
                     "Send 'help' for all commands."
                 ))
             else:
-                self._send_help_reply(request)
+                # Public mention with no resort name — stay quiet rather than reply to chatter
+                logger.info("[bot] Mention without a location — not replying: %r",
+                            request.raw_content[:80])
             self._db.update_request_status(db_id, "complete")
             return
 
@@ -207,6 +220,10 @@ class SnowBot:
             report = self._snow.lookup(request.raw_location)
         except ValueError as exc:
             logger.warning("[bot] Location not resolved: %s", exc)
+            if request.source_channel == "firehose":
+                # Likely chatter, not a resort — don't post a public "couldn't find" reply
+                self._db.update_request_status(db_id, "ignored")
+                return
             self._send_error_reply(
                 request, f"Sorry, I couldn't find snow conditions for {request.raw_location!r}."
             )
@@ -331,14 +348,7 @@ class SnowBot:
             )
 
         elif cmd == "help":
-            self._send_dm_reply(request, (
-                "SnowBot commands:\n"
-                "  Vail  or  Park City — get snow conditions\n"
-                "  set home Breckenridge — save home resort\n"
-                "  settings — view your preferences\n"
-                "  reset — clear all preferences\n"
-                "  clear home — remove home resort"
-            ))
+            self._send_dm_reply(request, format_help())
 
         else:
             logger.warning("[bot] Unknown DM command: %r", cmd)
@@ -352,14 +362,17 @@ class SnowBot:
             self._send_dm_reply(request, format_main_menu())
 
         elif branch == "snow_report":
-            # If user has a home state saved, jump straight to that state's resorts
+            # If user has a home state saved, jump straight to the resorts in its region
             prefs = self._db.get_user_prefs(did) if did else None
             home_state = prefs.get("home_state") if prefs else None
-            if home_state and home_state in _RESORTS_BY_REGION:
-                resorts = _RESORTS_BY_REGION[home_state]
+            home_region = next(
+                (r for r, states in REGION_GROUPS.items() if home_state in states), None
+            )
+            if home_region and home_region in _RESORTS_BY_REGION:
+                resorts = _RESORTS_BY_REGION[home_region]
                 if did:
-                    self._db.set_dm_session(did, "resorts", state=home_state)
-                for _msg in format_resorts_menu(home_state, resorts):
+                    self._db.set_dm_session(did, "resorts", state=home_region)
+                for _msg in format_resorts_menu(home_region, resorts):
                     self._send_dm_reply(request, _msg)
             else:
                 if did:
@@ -383,9 +396,11 @@ class SnowBot:
                 self._send_dm_reply(request, msg)
 
         elif branch == "photos":
+            # Photos posted publicly (DM image embeds not supported by Bluesky).
+            # When DM image support is added, replace _post_public_photo with _send_photo_dm.
             photo = self._content.random_photo()
             if photo:
-                self._send_photo_dm(request, photo)
+                self._post_public_photo(request, photo)
             else:
                 self._send_dm_reply(request, "No photos available right now.")
 
@@ -478,23 +493,32 @@ class SnowBot:
     def _handle_playlist_selection(self, request: AlertRequest, index: int) -> None:
         self._send_dm_reply(request, format_playlist_detail(self._content, index))
 
-    def _send_photo_dm(self, request: AlertRequest, photo) -> None:
-        """Send a photo + caption as a DM. Falls back to caption-only if upload fails."""
-        channel = self._notify_channels.get("bluesky_dm")
-        if channel:
-            payload = NotificationPayload(
-                request_db_id=request.db_id,
-                post_thread=[format_photo_caption(photo)],
-                reply_to_uri=request.reply_to_uri,
-                recipient_handle=request.requester_handle,
-                target_channel="bluesky_dm",
-                attachment_path=str(photo.path),
+    # _send_photo_dm disabled — Bluesky DMs do not support image embeds.
+    # Preserved for when the feature becomes available.
+    # def _send_photo_dm(self, request: AlertRequest, photo) -> None:
+    #     self._send_dm_reply(request, format_photo_caption(photo))
+
+    def _post_public_photo(self, request: AlertRequest, photo) -> None:
+        """Post a random photo publicly, mentioning the requester."""
+        channel = self._notify_channels.get("bluesky_post")
+        if channel is None:
+            logger.warning("[bot] No bluesky_post channel available for photo post")
+            self._send_dm_reply(request, "Sorry, photo posting is unavailable right now.")
+            return
+        try:
+            uri = channel.post_photo(
+                photo_path=str(photo.path),
+                caption=photo.caption,
+                mention_handle=request.requester_handle or "",
+                mention_did=request.requester_did or "",
             )
-            result = channel.send(payload)
-            if result.success:
-                return
-        # Fallback: caption only
-        self._send_dm_reply(request, format_photo_caption(photo))
+            logger.info("[bot] Posted photo publicly: %s", uri)
+            post_url = _uri_to_url(uri, request.requester_handle)
+            msg = f"📸 Just posted a snow photo for you!\n\n{post_url}" if post_url else "📸 Just posted a snow photo for you!"
+            self._send_dm_reply(request, msg)
+        except Exception as exc:
+            logger.error("[bot] Public photo post failed: %s", exc)
+            self._send_dm_reply(request, "Sorry, couldn't post a photo right now.")
 
     def _send_dm_reply(self, request: AlertRequest, message: str) -> None:
         elapsed = (datetime.utcnow() - request.received_at).total_seconds()
@@ -507,24 +531,6 @@ class SnowBot:
             reply_to_uri=request.reply_to_uri,
             recipient_handle=request.requester_handle,
             target_channel="bluesky_dm",
-        )
-        self._deliver(payload)
-
-    def _send_help_reply(self, request: AlertRequest) -> None:
-        help_text = (
-            "Hi! Mention me with a ski resort name to get snow conditions.\n"
-            "Examples:\n"
-            "  @snowbot.bsky.social Vail\n"
-            "  @snowbot.bsky.social Park City\n"
-            "  @snowbot.bsky.social Mammoth"
-        )
-        payload = NotificationPayload(
-            request_db_id=request.db_id,
-            post_thread=[help_text],
-            reply_to_uri=request.reply_to_uri,
-            reply_to_cid=request.reply_to_cid,
-            recipient_handle=request.requester_handle,
-            target_channel=self._route(request),
         )
         self._deliver(payload)
 
@@ -591,6 +597,18 @@ def _now() -> str:
     return datetime.utcnow().isoformat()
 
 
+def _uri_to_url(uri: Optional[str], handle: Optional[str]) -> Optional[str]:
+    """Convert an AT URI (at://did/collection/rkey) to a bsky.app post URL."""
+    if not uri or not handle:
+        return None
+    try:
+        # at://did:plc:xxx/app.bsky.feed.post/rkey
+        rkey = uri.rsplit("/", 1)[-1]
+        return f"https://bsky.app/profile/{handle}/post/{rkey}"
+    except Exception:
+        return None
+
+
 def _append_latency_footer(thread_posts: list[str], received_at: datetime,
                             server_type: str = "laptop") -> None:
     elapsed = (datetime.utcnow() - received_at).total_seconds()
@@ -603,9 +621,9 @@ def _append_latency_footer(thread_posts: list[str], received_at: datetime,
 # Convenience factory
 # ---------------------------------------------------------------------------
 
-def build_bot(settings: Settings) -> SnowBot:
-    """Constructs a fully wired SnowBot with all standard channels."""
-    bot = SnowBot(settings)
+def build_bot(settings: Settings) -> Snowbot:
+    """Constructs a fully wired Snowbot with all standard channels."""
+    bot = Snowbot(settings)
 
     bot.register_alert_channel(FileWatcherAlertChannel(settings))
     bot.register_alert_channel(FirehoseAlertChannel(settings))

@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import re
 from typing import Optional
 
 from bluesky_snowbot.snow.models import ResortLocation
@@ -503,6 +504,7 @@ _LOOKUP: dict[str, dict] = {}
 for _entry in _RESORTS:
     for _alias in _entry["names"]:
         _LOOKUP[_alias] = _entry
+_KEYS_LONGEST_FIRST: list[str] = sorted(_LOOKUP, key=len, reverse=True)
 
 
 class SnowResolver:
@@ -520,9 +522,14 @@ class SnowResolver:
         if entry:
             return _entry_to_location(entry)
 
-        # 2. Prefix / substring match
-        for key, e in _LOOKUP.items():
-            if normalised in key or key in normalised:
+        # 2. Whole-word match, longest alias first: an alias inside the input
+        #    ("what's the snow like at vail?"), or the input as the start of an
+        #    alias ("mammoth" → "mammoth mountain"). Word boundaries stop short
+        #    inputs like "ok" matching inside "revelstoke".
+        for key in _KEYS_LONGEST_FIRST:
+            e = _LOOKUP[key]
+            if (re.search(rf"\b{re.escape(key)}\b", normalised)
+                    or (len(normalised) >= 4 and re.match(rf"{re.escape(normalised)}\b", key))):
                 logger.debug("[resolver] Fuzzy match %r → %r", normalised, e["display"])
                 return _entry_to_location(e)
 

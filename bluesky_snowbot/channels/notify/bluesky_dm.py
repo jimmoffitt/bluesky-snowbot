@@ -77,27 +77,20 @@ class BlueskyDMNotifyChannel(NotificationChannel):
                 error="No convo_id and no recipient_handle",
             )
 
-        # Build image embed if attachment provided
-        embed = None
-        if payload.attachment_path:
-            embed = self._upload_image(payload.attachment_path,
-                                       alt=payload.post_thread[0] if payload.post_thread else "")
-
         sent_any = False
         for i, text in enumerate(messages):
             try:
-                msg_embed = embed if i == 0 else None  # attach image to first message only
-                self._send_message(convo_id, text, embed=msg_embed)
+                self._send_message(convo_id, text)
                 sent_any = True
                 logger.info("[bluesky_dm] Sent message %d/%d to convo %s",
                             i + 1, len(messages), convo_id)
-                if i < len(messages) - 1:
-                    time.sleep(INTER_MSG_DELAY)
             except Exception as exc:
                 logger.error("[bluesky_dm] Failed on message %d: %s", i, exc)
                 return NotificationResult(
                     success=sent_any, channel=self.CHANNEL_NAME, error=str(exc),
                 )
+            if i < len(messages) - 1:
+                time.sleep(INTER_MSG_DELAY)
 
         return NotificationResult(success=True, channel=self.CHANNEL_NAME)
 
@@ -117,7 +110,7 @@ class BlueskyDMNotifyChannel(NotificationChannel):
             logger.error("[bluesky_dm] atproto not installed: pip install atproto")
             return False
         except Exception as exc:
-            logger.error("[bluesky_dm] Login failed: %s", exc)
+            logger.error("[bluesky_dm] Login failed: %s: %s", type(exc).__name__, exc or repr(exc))
             return False
 
     def _get_or_create_convo(self, handle: str) -> Optional[str]:
@@ -132,23 +125,7 @@ class BlueskyDMNotifyChannel(NotificationChannel):
             logger.error("[bluesky_dm] Could not get/create convo with %s: %s", handle, exc)
             return None
 
-    def _upload_image(self, path: str, alt: str = "") -> Optional[object]:
-        """Upload a local image file and return an AppBskyEmbedImages embed, or None on failure."""
-        try:
-            from atproto import models as atproto_models
-            with open(path, "rb") as f:
-                blob_resp = self._client.upload_blob(f.read())
-            return atproto_models.AppBskyEmbedImages.Main(
-                images=[atproto_models.AppBskyEmbedImages.Image(
-                    image=blob_resp.blob,
-                    alt=alt[:1000],
-                )]
-            )
-        except Exception as exc:
-            logger.warning("[bluesky_dm] Image upload failed for %s: %s", path, exc)
-            return None
-
-    def _send_message(self, convo_id: str, text: str, embed=None) -> None:
+    def _send_message(self, convo_id: str, text: str) -> None:
         if self._chat_client is None:
             raise RuntimeError("Not authenticated")
         from atproto import models as atproto_models
@@ -159,7 +136,6 @@ class BlueskyDMNotifyChannel(NotificationChannel):
                 message=atproto_models.ChatBskyConvoDefs.MessageInput(
                     text=text,
                     facets=facets if facets else None,
-                    embed=embed,
                 ),
             )
         )

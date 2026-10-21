@@ -14,7 +14,7 @@ from typing import Optional
 
 @dataclass
 class ResortLocation:
-    """A resolved ski resort or mountain location."""
+    """A resolved snow resort or mountain location."""
     name: str           # Display name, e.g. "Vail Ski Resort"
     lat: float
     lon: float

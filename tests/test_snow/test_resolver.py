@@ -46,3 +46,19 @@ def test_elevation_set(resolver):
     loc = resolver.resolve("vail")
     assert loc.elevation_m is not None
     assert loc.elevation_m > 3000
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("what's the snow like at vail?", "Vail"),
+    ("snow report for jackson hole please", "Jackson Hole"),
+    ("telluride today?", "Telluride"),
+])
+def test_resort_named_in_sentence(resolver, text, expected):
+    assert expected in resolver.resolve(text).name
+
+
+@pytest.mark.parametrize("text", ["ok", "yes"])
+def test_short_words_do_not_match_inside_resort_names(resolver, monkeypatch, text):
+    monkeypatch.setattr(SnowResolver, "_geocode_fallback", staticmethod(lambda raw: None))
+    with pytest.raises(ValueError):
+        resolver.resolve(text)

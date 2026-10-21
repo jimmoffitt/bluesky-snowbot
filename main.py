@@ -1,4 +1,4 @@
-"""Entry point for the SnowBot."""
+"""Entry point for the Snowbot."""
 
 import logging
 import sys
@@ -31,7 +31,7 @@ def main() -> None:
 
     _configure_logging(settings)
     logger = logging.getLogger(__name__)
-    logger.info("Starting SnowBot as %s on %s", settings.bluesky_handle, settings.server_type)
+    logger.info("Starting Snowbot as %s on %s", settings.bluesky_handle, settings.server_type)
 
     bot = build_bot(settings)
     bot.start()   # blocks until SIGINT / SIGTERM

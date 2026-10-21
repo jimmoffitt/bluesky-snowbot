@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from datetime import datetime, timezone
 from typing import Optional
 
 from bluesky_snowbot.channels.alert.base import AlertChannel, AlertRequest
@@ -30,7 +31,7 @@ from bluesky_snowbot.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_POLL_INTERVAL = 15.0
+DEFAULT_POLL_INTERVAL = 3.0
 
 
 class DMAlertChannel(AlertChannel):
@@ -59,6 +60,7 @@ class DMAlertChannel(AlertChannel):
         self._own_did: str  = ""
         self._cursor: Optional[str] = None
         self._seen_ids: set[str] = set()
+        self._handle_cache: dict[str, str] = {}  # DID → handle, persists for lifetime of process
 
     # ------------------------------------------------------------------
     # AlertChannel interface
@@ -107,7 +109,7 @@ class DMAlertChannel(AlertChannel):
             logger.error("[dm] atproto not installed: pip install atproto")
             self._stop_event.set()
         except Exception as exc:
-            logger.error("[dm] Login failed: %s", exc)
+            logger.error("[dm] Login failed: %s: %s", type(exc).__name__, exc or repr(exc))
 
     def _check_dms(self) -> None:
         if self._chat_client is None:
@@ -155,6 +157,7 @@ class DMAlertChannel(AlertChannel):
                     raw_content=text,
                     reply_to_uri=log.convo_id,
                     command=command,
+                    received_at=_parse_sent_at(getattr(msg, "sent_at", None)),
                 )
                 self._dispatch(request)
 
@@ -190,9 +193,14 @@ class DMAlertChannel(AlertChannel):
     def _did_to_handle(self, did: str) -> Optional[str]:
         if not did or self._client is None:
             return None
+        if did in self._handle_cache:
+            return self._handle_cache[did]
         try:
             profile = self._client.app.bsky.actor.get_profile({"actor": did})
-            return getattr(profile, "handle", None)
+            handle = getattr(profile, "handle", None)
+            if handle:
+                self._handle_cache[did] = handle
+            return handle
         except Exception:
             return None
 
@@ -215,6 +223,18 @@ class DMAlertChannel(AlertChannel):
         if normalised in ("help", "?", "commands"):
             return "help"
         return None
+
+
+def _parse_sent_at(sent_at: Optional[str]) -> datetime:
+    """Parse the message's sent_at ISO timestamp to a UTC-aware datetime.
+    Falls back to utcnow() if absent or unparseable."""
+    if sent_at:
+        try:
+            dt = datetime.fromisoformat(sent_at.replace("Z", "+00:00"))
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        except Exception:
+            pass
+    return datetime.utcnow()
 
 
 def _extract_location(text: str) -> Optional[str]:

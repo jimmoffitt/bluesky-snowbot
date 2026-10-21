@@ -26,11 +26,18 @@ MENU_TRIGGERS = {"menu", "main menu", "main", "top", "home", "start", "start ove
 
 SNOW_REPORT_TRIGGERS  = {"1", "snow reports", "snow report", "report", "reports", "snow"}
 LEARN_TRIGGERS        = {"2", "learn", "learn about snow", "science", "links", "resources"}
+# Photos are posted publicly (not via DM embed — Bluesky DMs don't support image embeds).
 PHOTOS_TRIGGERS       = {"3", "photos", "photo", "picture", "pictures", "pic", "pics"}
 PLAYLIST_TRIGGERS     = {"4", "music", "playlist", "playlists", "songs", "spotify"}
 HELP_TRIGGERS         = {"5", "help", "about", "?"}
 CHANGE_STATE_TRIGGERS = {"change state", "states", "regions", "change region", "all states"}
 BACK_TRIGGERS         = {"back", "go back", "...", "up", "return"}
+
+# Conversational replies that should never be treated as a location
+SMALL_TALK = {
+    "hi", "hello", "hey", "yo", "thanks", "thank you", "thx", "ty", "ok", "okay",
+    "k", "cool", "nice", "great", "awesome", "yes", "yep", "no", "nope", "lol",
+}
 
 # ---------------------------------------------------------------------------
 # State / region display names
@@ -77,6 +84,14 @@ def is_menu_trigger(text: str) -> bool:
     return text.strip().lower() in MENU_TRIGGERS
 
 
+def is_small_talk(text: str) -> bool:
+    return text.strip().lower().rstrip("!.? ") in SMALL_TALK
+
+
+def format_small_talk_reply() -> str:
+    return "❄️ Send a resort name for snow conditions (e.g. Vail), or 'menu' for options."
+
+
 def classify_menu_input(text: str) -> str | None:
     """
     Return a menu branch name for the given DM text, or None if not a menu command.
@@ -119,11 +134,11 @@ def format_resorts_menu(region: str, resorts: list[dict]) -> list[str]:
 
 def format_main_menu() -> str:
     return (
-        "Hi! I'm SnowBot ❄️ What would you like?\n\n"
+        "Hi! I'm Snowbot ❄️ What would you like?\n\n"
         "1. Snow reports\n"
         "2. Learn about snow\n"
-        "3. See snow photos\n"
-        "4. Music playlists\n"
+        "3. See snow photos\n"  # posts publicly with @mention
+        "4. Weather & mountain playlists\n"
         "5. Help / About\n\n"
         "Reply with a number or keyword — or just type a resort name for instant conditions."
     )
@@ -176,14 +191,14 @@ def format_photo_caption(photo) -> str:
 
 def format_help() -> str:
     return (
-        "SnowBot ❄️\n\n"
+        "Snowbot ❄️\n\n"
         "Send a resort name for snow conditions:\n"
         "  Vail  •  Park City  •  Mammoth\n\n"
         "Other commands:\n"
         "  menu — show main menu\n"
         "  learn — snow science links\n"
-        "  photos — snow photos\n"
-        "  music — Spotify playlists\n"
+        "  photos — post a snow photo for you\n"
+        "  music — weather & mountain playlists\n"
         "  set home Vail — save home resort\n"
         "  settings — view preferences\n"
         "  reset — clear preferences"
