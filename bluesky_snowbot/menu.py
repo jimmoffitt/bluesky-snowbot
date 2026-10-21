@@ -15,6 +15,8 @@ multiple messages when needed.
 
 from __future__ import annotations
 
+import re
+
 from bluesky_snowbot.content import ContentLibrary
 from bluesky_snowbot.snow.resolver import snotel_icon
 
@@ -32,6 +34,17 @@ PLAYLIST_TRIGGERS     = {"4", "music", "playlist", "playlists", "songs", "spotif
 HELP_TRIGGERS         = {"5", "help", "about", "?"}
 CHANGE_STATE_TRIGGERS = {"change state", "states", "regions", "change region", "all states"}
 BACK_TRIGGERS         = {"back", "go back", "...", "up", "return"}
+
+# Distinctive words that select a branch even inside a longer message
+# ("show me a photo", "learn more"). Checked only when the message doesn't
+# name a known resort, so "snow at vail" still gets the Vail report.
+KEYWORD_BRANCHES: list[tuple[set[str], str]] = [
+    ({"photo", "photos", "pic", "pics", "picture", "pictures"}, "photos"),
+    ({"learn", "science"},                                       "learn"),
+    ({"music", "playlist", "playlists", "songs", "spotify"},    "playlist"),
+    ({"help", "commands"},                                       "help"),
+    ({"menu", "options"},                                        "menu"),
+]
 
 # Conversational replies that should never be treated as a location
 SMALL_TALK = {
@@ -99,6 +112,29 @@ def classify_menu_input(text: str) -> str | None:
                   "help", "change_state"
     """
     t = text.strip().lower()
+    branch = _classify_exact(t)
+    if branch is None:
+        # Retry without punctuation: "Photo!" → "photo"
+        stripped = _strip_punctuation(t)
+        if stripped and stripped != t:
+            branch = _classify_exact(stripped)
+    return branch
+
+
+def find_menu_keyword(text: str) -> str | None:
+    """Return the branch for a distinctive keyword anywhere in the text, or None."""
+    words = set(_strip_punctuation(text.lower()).split())
+    for keywords, branch in KEYWORD_BRANCHES:
+        if words & keywords:
+            return branch
+    return None
+
+
+def _strip_punctuation(text: str) -> str:
+    return " ".join(re.sub(r"[^\w\s'-]", " ", text).split())
+
+
+def _classify_exact(t: str) -> str | None:
     if t in MENU_TRIGGERS:         return "menu"
     if t in BACK_TRIGGERS:         return "back"
     if t in SNOW_REPORT_TRIGGERS:  return "snow_report"

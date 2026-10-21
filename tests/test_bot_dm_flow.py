@@ -121,3 +121,25 @@ def test_back_after_report_reopens_resort_list(bot):
     for text in ("menu", "1", "2", "3", "back"):
         _dm(bot, text)
     assert any(m.startswith(f"🎿 {region} resorts") for m in bot.dm.sent[-3:])
+
+
+@pytest.mark.parametrize("text", ["Photo!", "photos please", "show me a photo", "send a pic"])
+def test_photo_keyword_variants(bot, text):
+    if not bot._content.random_photo():
+        pytest.skip("no local photos")
+    _dm(bot, text)
+    assert len(bot.post.photos) == 1
+    assert bot.lookups == []
+
+
+@pytest.mark.parametrize("text", ["learn", "Learn!", "learn more", "I want to learn about snow"])
+def test_learn_keyword_variants(bot, text):
+    _dm(bot, text)
+    assert bot.lookups == []
+    assert any("Learn about snow" in m for m in bot.dm.sent)
+
+
+def test_resort_name_beats_keyword(bot):
+    _dm(bot, "photos from vail")   # names a resort → snow report, not a photo
+    assert bot.lookups == ["photos from vail"]
+    assert bot.post.photos == []

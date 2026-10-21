@@ -515,6 +515,19 @@ class SnowResolver:
         Resolve a raw location string to a ResortLocation.
         Raises ValueError if resolution fails completely.
         """
+        loc = self.match_known(raw)
+        if loc:
+            return loc
+
+        # 3. Nominatim geocoding fallback
+        loc = self._geocode_fallback(raw)
+        if loc:
+            return loc
+
+        raise ValueError(f"Could not resolve location: {raw!r}")
+
+    def match_known(self, raw: str) -> Optional[ResortLocation]:
+        """Match against the resort table only (offline); None if no resort is named."""
         normalised = raw.strip().lower()
 
         # 1. Exact match
@@ -532,13 +545,7 @@ class SnowResolver:
                     or (len(normalised) >= 4 and re.match(rf"{re.escape(normalised)}\b", key))):
                 logger.debug("[resolver] Fuzzy match %r → %r", normalised, e["display"])
                 return _entry_to_location(e)
-
-        # 3. Nominatim geocoding fallback
-        loc = self._geocode_fallback(raw)
-        if loc:
-            return loc
-
-        raise ValueError(f"Could not resolve location: {raw!r}")
+        return None
 
     @staticmethod
     def _geocode_fallback(raw: str) -> Optional[ResortLocation]:

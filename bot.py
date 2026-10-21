@@ -49,7 +49,8 @@ from bluesky_snowbot.menu import (
     format_link_detail, format_main_menu,
     format_photo_caption,
     format_playlist_detail, format_playlist_menu, format_regions_menu,
-    format_resorts_menu, format_small_talk_reply, is_menu_trigger, is_small_talk,
+    find_menu_keyword, format_resorts_menu, format_small_talk_reply, is_menu_trigger,
+    is_small_talk,
     STATE_NAMES,
 )
 from bluesky_snowbot.snow.resolver import REGION_GROUPS, _RESORTS_BY_REGION
@@ -180,8 +181,13 @@ class Snowbot:
                 self._db.update_request_status(db_id, "complete")
                 return
 
-            # Named keyword → menu branch
-            branch = None if resort_selected else classify_menu_input(raw)
+            # Named keyword → menu branch; failing that, a keyword inside a longer
+            # message ("show me a photo"), unless the message names a resort
+            branch = None
+            if not resort_selected:
+                branch = classify_menu_input(raw)
+                if branch is None and not self._snow.names_known_resort(raw):
+                    branch = find_menu_keyword(raw)
             if branch:
                 self._handle_menu_branch(request, branch)
                 self._db.update_request_status(db_id, "complete")

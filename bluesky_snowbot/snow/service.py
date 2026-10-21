@@ -70,6 +70,10 @@ class SnowService:
         location = self._resolver.resolve(raw_location)
         return self._fetch_report(location)
 
+    def names_known_resort(self, raw: str) -> bool:
+        """True if the text names a resort in the built-in table (no geocoding)."""
+        return self._resolver.match_known(raw) is not None
+
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
