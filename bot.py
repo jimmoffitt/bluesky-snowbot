@@ -646,8 +646,12 @@ def build_bot(settings: Settings) -> Snowbot:
 
     bot.register_alert_channel(FileWatcherAlertChannel(settings))
     bot.register_alert_channel(FirehoseAlertChannel(settings))
-    bot.register_alert_channel(DMAlertChannel(settings, db=bot._db,
-                                               poll_interval=settings.dm_poll_interval_sec))
+    bot.register_alert_channel(DMAlertChannel(
+        settings, db=bot._db,
+        poll_interval=settings.dm_poll_interval_sec,
+        active_interval=settings.dm_poll_active_interval_sec,
+        active_window=settings.dm_poll_active_window_sec,
+    ))
 
     bot.register_notify_channel(
         BlueskyPostNotifyChannel(settings.bluesky_handle, settings.bluesky_app_password)

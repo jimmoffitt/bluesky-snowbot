@@ -52,8 +52,11 @@ class Settings:
     # Photos directory (local path, not stored in git)
     photos_path: Path
 
-    # DM polling interval (seconds)
+    # DM polling (seconds): idle interval, fast interval while a conversation is
+    # active, and how long after the last incoming DM to stay fast
     dm_poll_interval_sec: float
+    dm_poll_active_interval_sec: float
+    dm_poll_active_window_sec: float
 
     # DM session TTL — how long a menu navigation session stays active (minutes)
     dm_session_ttl_minutes: int
@@ -101,6 +104,8 @@ class Settings:
             snocountry_mock=opt("SNOCOUNTRY_MOCK", "false").lower() in ("1", "true", "yes"),
             photos_path=Path(opt("PHOTOS_PATH", "bluesky_snowbot/data/photos")),
             dm_poll_interval_sec=opt_float("DM_POLL_INTERVAL_SEC", 5.0),
+            dm_poll_active_interval_sec=opt_float("DM_POLL_ACTIVE_INTERVAL_SEC", 1.0),
+            dm_poll_active_window_sec=opt_float("DM_POLL_ACTIVE_WINDOW_SEC", 120.0),
             dm_session_ttl_minutes=opt_int("DM_SESSION_TTL_MINUTES", 30),
             server_type=opt("SERVER_TYPE", "laptop"),
         )

@@ -1,8 +1,10 @@
 """
 DMAlertChannel
 
-Polls the Bluesky chat API on a configurable interval to check for new
-Direct Messages addressed to the bot. Messages containing a resort name
+Polls the Bluesky chat API to check for new Direct Messages addressed to
+the bot. Polling is adaptive: every `poll_interval` seconds when idle, then
+every `active_interval` seconds for `active_window` seconds after the last
+incoming DM, so replies in a conversation come back quickly. Messages containing a resort name
 or location are dispatched as AlertRequests with source_channel="dm".
 
 Message deduplication is two-layered:
@@ -23,6 +25,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -31,7 +34,9 @@ from bluesky_snowbot.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_POLL_INTERVAL = 3.0
+DEFAULT_POLL_INTERVAL   = 5.0    # idle
+DEFAULT_ACTIVE_INTERVAL = 1.0    # while a conversation is active
+DEFAULT_ACTIVE_WINDOW   = 120.0  # stay fast this long after the last incoming DM
 
 
 class DMAlertChannel(AlertChannel):
@@ -47,12 +52,17 @@ class DMAlertChannel(AlertChannel):
         settings: Settings,
         db=None,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
+        active_interval: float = DEFAULT_ACTIVE_INTERVAL,
+        active_window: float = DEFAULT_ACTIVE_WINDOW,
     ) -> None:
         super().__init__()
         self._handle        = settings.bluesky_handle
         self._app_password  = settings.bluesky_app_password
         self._db            = db
         self._poll_interval = poll_interval
+        self._active_interval = min(active_interval, poll_interval)
+        self._active_window = active_window
+        self._last_activity: Optional[float] = None  # monotonic time of last incoming DM
         self._stop_event    = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._client        = None
@@ -74,7 +84,8 @@ class DMAlertChannel(AlertChannel):
             daemon=True,
         )
         self._thread.start()
-        logger.info("[dm] Started — polling every %.0fs", self._poll_interval)
+        logger.info("[dm] Started — polling every %.0fs (%.1fs for %.0fs after a DM)",
+                    self._poll_interval, self._active_interval, self._active_window)
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -88,14 +99,28 @@ class DMAlertChannel(AlertChannel):
 
     def _poll_loop(self) -> None:
         self._login()
+        was_active = False
         while not self._stop_event.is_set():
             try:
-                self._check_dms()
+                if self._check_dms():
+                    self._last_activity = time.monotonic()
             except Exception as exc:
                 logger.warning("[dm] Error during poll: %s", exc)
                 if "auth" in str(exc).lower() or "expired" in str(exc).lower():
                     self._login()
-            self._stop_event.wait(timeout=self._poll_interval)
+            interval = self._next_interval(time.monotonic())
+            is_active = interval < self._poll_interval
+            if is_active != was_active:
+                logger.info("[dm] Polling every %.1fs (%s)", interval,
+                            "conversation active" if is_active else "idle")
+                was_active = is_active
+            self._stop_event.wait(timeout=interval)
+
+    def _next_interval(self, now: float) -> float:
+        """Fast interval within the active window after the last incoming DM, else idle."""
+        if self._last_activity is not None and now - self._last_activity <= self._active_window:
+            return self._active_interval
+        return self._poll_interval
 
     def _login(self) -> None:
         try:
@@ -111,9 +136,10 @@ class DMAlertChannel(AlertChannel):
         except Exception as exc:
             logger.error("[dm] Login failed: %s: %s", type(exc).__name__, exc or repr(exc))
 
-    def _check_dms(self) -> None:
+    def _check_dms(self) -> int:
+        """Fetch new log entries and dispatch them. Returns the number of incoming DMs."""
         if self._chat_client is None:
-            return
+            return 0
 
         from atproto import models as atproto_models
 
@@ -122,11 +148,12 @@ class DMAlertChannel(AlertChannel):
             resp = self._chat_client.chat.bsky.convo.get_log(params=params)
         except Exception as exc:
             logger.warning("[dm] get_log failed: %s", exc)
-            return
+            return 0
 
         if resp.cursor:
             self._cursor = resp.cursor
 
+        incoming = 0
         for log in resp.logs:
             try:
                 if not isinstance(log, atproto_models.ChatBskyConvoDefs.LogCreateMessage):
@@ -159,10 +186,12 @@ class DMAlertChannel(AlertChannel):
                     command=command,
                     received_at=_parse_sent_at(getattr(msg, "sent_at", None)),
                 )
+                incoming += 1
                 self._dispatch(request)
 
             except Exception as exc:
                 logger.debug("[dm] Skipping malformed log entry: %s", exc)
+        return incoming
 
     # ------------------------------------------------------------------
     # Deduplication helpers
