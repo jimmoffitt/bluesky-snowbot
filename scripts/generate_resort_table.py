@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bluesky_snowbot.snow.resolver import _RESORTS, snotel_quality, SNOTEL_ICON_GOOD, SNOTEL_ICON_MARGINAL, SNOTEL_ICON_NONE
+from snowbot.snow.resolver import _RESORTS, snotel_quality, SNOTEL_ICON_GOOD, SNOTEL_ICON_MARGINAL, SNOTEL_ICON_NONE
 
 
 FIELDNAMES = [

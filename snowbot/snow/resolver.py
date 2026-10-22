@@ -14,7 +14,7 @@ after obtaining a SnoCountry API key. Resorts without a known sc_id will
 fall back to Open-Meteo for all data.
 
 Usage:
-    from bluesky_snowbot.snow.resolver import SnowResolver
+    from snowbot.snow.resolver import SnowResolver
     loc = SnowResolver().resolve("Vail")        # → ResortLocation
     loc = SnowResolver().resolve("Park City")   # → ResortLocation
 """
@@ -25,7 +25,7 @@ import logging
 import re
 from typing import Optional
 
-from bluesky_snowbot.snow.models import ResortLocation
+from snowbot.snow.models import ResortLocation
 
 logger = logging.getLogger(__name__)
 

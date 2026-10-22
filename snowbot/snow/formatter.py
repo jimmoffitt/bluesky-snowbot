@@ -14,14 +14,14 @@ Output format depends on data availability:
     Post 2: Temperature + wind + sky conditions
 
 Usage:
-    from bluesky_snowbot.snow.formatter import SnowFormatter
+    from snowbot.snow.formatter import SnowFormatter
     posts = SnowFormatter().format_thread(report)
 """
 
 from __future__ import annotations
 
-from bluesky_snowbot.snow.models import SnowReport, wmo_emoji
-from bluesky_snowbot.snow.resolver import snotel_quality
+from snowbot.snow.models import SnowReport, wmo_emoji
+from snowbot.snow.resolver import snotel_quality
 
 BLUESKY_LIMIT = 300
 

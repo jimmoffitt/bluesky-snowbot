@@ -2,7 +2,7 @@
 
 import pytest
 
-from bluesky_snowbot.snow.resolver import SnowResolver
+from snowbot.snow.resolver import SnowResolver
 
 
 @pytest.fixture

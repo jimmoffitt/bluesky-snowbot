@@ -31,7 +31,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bluesky_snowbot.snow.resolver import _RESORTS
+from snowbot.snow.resolver import _RESORTS
 
 AWDB_BASE    = "https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1"
 TIMEOUT      = 30

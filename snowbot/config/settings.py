@@ -5,7 +5,7 @@ Reads settings from .local.env (or any dotenv-compatible file).
 All required values are validated on load; missing keys raise ConfigError.
 
 Usage:
-    from bluesky_snowbot.config.settings import Settings
+    from snowbot.config.settings import Settings
     cfg = Settings.load()
 """
 
@@ -102,7 +102,7 @@ class Settings:
             snow_cache_ttl_minutes=opt_int("SNOW_CACHE_TTL_MINUTES", 30),
             snocountry_key=opt("SNOCOUNTRY_KEY") or None,
             snocountry_mock=opt("SNOCOUNTRY_MOCK", "false").lower() in ("1", "true", "yes"),
-            photos_path=Path(opt("PHOTOS_PATH", "bluesky_snowbot/data/photos")),
+            photos_path=Path(opt("PHOTOS_PATH", "snowbot/data/photos")),
             dm_poll_interval_sec=opt_float("DM_POLL_INTERVAL_SEC", 5.0),
             dm_poll_active_interval_sec=opt_float("DM_POLL_ACTIVE_INTERVAL_SEC", 1.0),
             dm_poll_active_window_sec=opt_float("DM_POLL_ACTIVE_WINDOW_SEC", 120.0),

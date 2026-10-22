@@ -11,8 +11,8 @@ The formatter decides how to present the data depending on which fields are popu
 in the returned SnowReport.
 
 Usage:
-    from bluesky_snowbot.snow.service import SnowService
-    from bluesky_snowbot.storage.db import Database
+    from snowbot.snow.service import SnowService
+    from snowbot.storage.db import Database
 
     with Database("data/snowbot.db") as db:
         svc = SnowService(db, snocountry_key="YOUR_KEY")
@@ -26,15 +26,15 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from bluesky_snowbot.snow.client import SnowClient
-from bluesky_snowbot.snow.models import (
+from snowbot.snow.client import SnowClient
+from snowbot.snow.models import (
     ConditionsReport, DailyForecast, ResortLocation, SnowDepthReport, SnowReport,
     SnotelReading, wmo_description,
 )
-from bluesky_snowbot.snow.resolver import SnowResolver
-from bluesky_snowbot.snow.snocountry_client import SnoCountryClient
-from bluesky_snowbot.snow.snocountry_mock import MockSnoCountryClient
-from bluesky_snowbot.snow.snotel_client import SnotelClient
+from snowbot.snow.resolver import SnowResolver
+from snowbot.snow.snocountry_client import SnoCountryClient
+from snowbot.snow.snocountry_mock import MockSnoCountryClient
+from snowbot.snow.snotel_client import SnotelClient
 
 logger = logging.getLogger(__name__)
 
@@ -326,7 +326,7 @@ def _synthetic_id(name: str) -> int:
 
 
 def _deserialize_report(data: dict, location: ResortLocation) -> SnowReport:
-    from bluesky_snowbot.snow.models import ResortOperations
+    from snowbot.snow.models import ResortOperations
     snow = SnowDepthReport(
         depth_cm   = data["depth_cm"],
         new_24h_cm = data["new_24h_cm"],

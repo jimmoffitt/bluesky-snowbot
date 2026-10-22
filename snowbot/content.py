@@ -1,7 +1,7 @@
 """
 Content loader — reads the curated CSV data files into memory at startup.
 
-Data files (in bluesky_snowbot/data/):
+Data files (in snowbot/data/):
   links.csv      — snow science / research organizations
   playlists.csv  — curated Spotify playlists
   photos.csv     — photo filenames + captions

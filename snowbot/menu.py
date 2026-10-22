@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import re
 
-from bluesky_snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS
-from bluesky_snowbot.content import ContentLibrary
-from bluesky_snowbot.snow.resolver import snotel_icon
+from snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS
+from snowbot.content import ContentLibrary
+from snowbot.snow.resolver import snotel_icon
 
 # ---------------------------------------------------------------------------
 # Trigger keyword sets (checked case-insensitively against stripped DM text)

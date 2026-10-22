@@ -3,7 +3,7 @@ Fetch the full SnoCountry resort list and print a mapping table.
 
 Run this once after obtaining your SnoCountry API key to discover
 the numeric IDs for each resort, then copy them into the sc_id fields
-in bluesky_snowbot/snow/resolver.py.
+in snowbot/snow/resolver.py.
 
 Usage:
     SNOCOUNTRY_KEY=your_key python scripts/fetch_resort_list.py
@@ -24,7 +24,7 @@ from pathlib import Path
 # Allow running from project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bluesky_snowbot.snow.snocountry_client import SnoCountryClient
+from snowbot.snow.snocountry_client import SnoCountryClient
 
 
 def main() -> None:
@@ -69,7 +69,7 @@ def main() -> None:
         print(f"{r.get('id', '?'):>8}  {state:<6}  {r.get('resortName', '?')}")
 
     print(f"\nTotal alpine resorts: {len(alpine)}")
-    print("\nCopy the IDs into bluesky_snowbot/snow/resolver.py — look for sc_id: None")
+    print("\nCopy the IDs into snowbot/snow/resolver.py — look for sc_id: None")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from bluesky_snowbot.config.settings import Settings, ConfigError
+from snowbot.config.settings import Settings, ConfigError
 from bot import build_bot
 
 

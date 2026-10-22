@@ -11,7 +11,7 @@ build/
 .local.env
 *.env
 
-# Data / runtime (root-level only — bluesky_snowbot/data/*.csv are committed)
+# Data / runtime (root-level only — snowbot/data/*.csv are committed)
 /data/
 logs/
 inbox/archive/
@@ -34,4 +34,4 @@ CLAUDE.md
 .pytest_cache/
 .coverage
 htmlcov/
-bluesky_snowbot/data/photos/
+snowbot/data/photos/

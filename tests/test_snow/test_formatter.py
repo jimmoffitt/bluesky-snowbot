@@ -2,8 +2,8 @@
 
 import pytest
 
-from bluesky_snowbot.snow.formatter import SnowFormatter
-from bluesky_snowbot.snow.models import ResortOperations
+from snowbot.snow.formatter import SnowFormatter
+from snowbot.snow.models import ResortOperations
 
 
 @pytest.fixture

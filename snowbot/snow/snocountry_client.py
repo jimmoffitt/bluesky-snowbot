@@ -16,7 +16,7 @@ API overview:
 All measurements in the API are imperial (inches, °F, feet, acres).
 
 Usage:
-    from bluesky_snowbot.snow.snocountry_client import SnoCountryClient
+    from snowbot.snow.snocountry_client import SnoCountryClient
     client = SnoCountryClient(api_key="YOUR_KEY")
     ops = client.fetch_resort(resort_id=12345)   # → ResortOperations
 """
@@ -28,7 +28,7 @@ from typing import Optional
 
 import requests
 
-from bluesky_snowbot.snow.models import ResortOperations
+from snowbot.snow.models import ResortOperations
 
 logger = logging.getLogger(__name__)
 

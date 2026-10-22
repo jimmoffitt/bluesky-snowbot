@@ -19,7 +19,7 @@ import re
 import time
 from typing import Optional
 
-from bluesky_snowbot.channels.notify.base import (
+from snowbot.channels.notify.base import (
     NotificationChannel,
     NotificationPayload,
     NotificationResult,

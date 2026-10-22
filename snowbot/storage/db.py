@@ -1,5 +1,5 @@
 """
-Database layer for bluesky_snowbot.
+Database layer for snowbot.
 
 SQLite with WAL mode. Schema mirrors bluesky_weather_bot with snow-specific
 cache table names. Shared tables (requests, responses, seen_dm_ids,

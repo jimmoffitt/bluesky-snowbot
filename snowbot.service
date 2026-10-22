@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=jim
-WorkingDirectory=/home/jim/projects/bluesky_snowbot
-ExecStart=/home/jim/projects/bluesky_snowbot/.venv/bin/python main.py
+WorkingDirectory=/home/jim/projects/bluesky-snowbot
+ExecStart=/home/jim/projects/bluesky-snowbot/.venv/bin/python main.py
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -15,7 +15,7 @@ StandardError=journal
 SyslogIdentifier=snowbot
 
 # Environment file with BSKY_HANDLE, BSKY_APP_PASSWORD, etc.
-EnvironmentFile=/home/jim/projects/bluesky_snowbot/.local.env
+EnvironmentFile=/home/jim/projects/bluesky-snowbot/.local.env
 
 [Install]
 WantedBy=multi-user.target

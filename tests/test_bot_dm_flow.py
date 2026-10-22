@@ -2,8 +2,8 @@
 
 import pytest
 
-from bluesky_snowbot.channels.alert.base import AlertRequest
-from bluesky_snowbot.channels.notify.base import NotificationResult
+from snowbot.channels.alert.base import AlertRequest
+from snowbot.channels.notify.base import NotificationResult
 from bot import Snowbot
 
 
@@ -24,7 +24,7 @@ class FakeChannel:
 
 @pytest.fixture
 def bot(tmp_path, monkeypatch):
-    from bluesky_snowbot.config.settings import Settings
+    from snowbot.config.settings import Settings
     settings = Settings.load()
     settings.db_path = str(tmp_path / "test.db")
     b = Snowbot(settings)
@@ -39,7 +39,7 @@ def bot(tmp_path, monkeypatch):
 
 
 def _dm(bot, text, n=[0]):
-    from bluesky_snowbot.channels.alert.dm_poller import DMAlertChannel, _extract_location
+    from snowbot.channels.alert.dm_poller import DMAlertChannel, _extract_location
     n[0] += 1
     cmd = DMAlertChannel._extract_command(text)
     bot._handle_request(AlertRequest(
@@ -50,7 +50,7 @@ def _dm(bot, text, n=[0]):
 
 
 def test_resort_number_that_matches_main_menu_number_looks_up_resort(bot):
-    from bluesky_snowbot.snow.resolver import _RESORTS_BY_REGION
+    from snowbot.snow.resolver import _RESORTS_BY_REGION
     _dm(bot, "menu")
     _dm(bot, "1")   # regions
     _dm(bot, "1")   # first region's resorts
@@ -96,7 +96,7 @@ def test_home_state_jumps_to_its_region(bot):
     "@snowbot.bsky.social you rock",          # text that doesn't resolve to a resort
 ])
 def test_public_mention_chatter_gets_no_reply(bot, text):
-    from bluesky_snowbot.channels.alert.firehose import FirehoseAlertChannel
+    from snowbot.channels.alert.firehose import FirehoseAlertChannel
     bot._handle_request(AlertRequest(
         source_channel="firehose", requester_handle="did:plc:tester", requester_did="did:plc:tester",
         raw_location=FirehoseAlertChannel._extract_location(text), raw_content=text,
@@ -116,7 +116,7 @@ def test_resort_list_dropped_after_report(bot):
 
 
 def test_back_after_report_reopens_resort_list(bot):
-    from bluesky_snowbot.snow.resolver import _RESORTS_BY_REGION
+    from snowbot.snow.resolver import _RESORTS_BY_REGION
     region = list(_RESORTS_BY_REGION)[1]
     for text in ("menu", "1", "2", "3", "back"):
         _dm(bot, text)

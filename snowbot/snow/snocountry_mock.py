@@ -18,7 +18,7 @@ Override file format (YAML example at inbox/snocountry_override.yaml):
     total_lifts: 18
 
 Usage:
-    from bluesky_snowbot.snow.snocountry_mock import MockSnoCountryClient
+    from snowbot.snow.snocountry_mock import MockSnoCountryClient
     client = MockSnoCountryClient()
     ops = client.fetch_resort(resort_id=42)
 """
@@ -30,7 +30,7 @@ import random
 from pathlib import Path
 from typing import Optional
 
-from bluesky_snowbot.snow.models import ResortOperations
+from snowbot.snow.models import ResortOperations
 
 logger = logging.getLogger(__name__)
 

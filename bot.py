@@ -18,7 +18,7 @@ Routing rules:
   - Requests from "file" channel    → BlueskyPostNotifyChannel (broadcast post)
 
 Usage:
-    from bluesky_snowbot.config.settings import Settings
+    from snowbot.config.settings import Settings
     from bot import build_bot
 
     bot = build_bot(Settings.load())
@@ -33,18 +33,18 @@ import threading
 from datetime import datetime
 from typing import Optional
 
-from bluesky_snowbot.channels.alert.base import AlertChannel, AlertRequest
-from bluesky_snowbot.channels.alert.dm_poller import DMAlertChannel
-from bluesky_snowbot.channels.alert.file_watcher import FileWatcherAlertChannel
-from bluesky_snowbot.channels.alert.firehose import FirehoseAlertChannel
-from bluesky_snowbot.channels.notify.base import (
+from snowbot.channels.alert.base import AlertChannel, AlertRequest
+from snowbot.channels.alert.dm_poller import DMAlertChannel
+from snowbot.channels.alert.file_watcher import FileWatcherAlertChannel
+from snowbot.channels.alert.firehose import FirehoseAlertChannel
+from snowbot.channels.notify.base import (
     NotificationChannel, NotificationPayload,
 )
-from bluesky_snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS, BlueskyDMNotifyChannel
-from bluesky_snowbot.channels.notify.bluesky_post import BlueskyPostNotifyChannel
-from bluesky_snowbot.config.settings import Settings
-from bluesky_snowbot.content import ContentLibrary
-from bluesky_snowbot.menu import (
+from snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS, BlueskyDMNotifyChannel
+from snowbot.channels.notify.bluesky_post import BlueskyPostNotifyChannel
+from snowbot.config.settings import Settings
+from snowbot.content import ContentLibrary
+from snowbot.menu import (
     classify_menu_input, format_help, format_learn_menu,
     format_link_detail, format_main_menu,
     format_photo_caption,
@@ -53,10 +53,10 @@ from bluesky_snowbot.menu import (
     is_small_talk,
     STATE_NAMES,
 )
-from bluesky_snowbot.snow.resolver import REGION_GROUPS, _RESORTS_BY_REGION
-from bluesky_snowbot.snow.formatter import SnowFormatter
-from bluesky_snowbot.snow.service import SnowService
-from bluesky_snowbot.storage.db import Database
+from snowbot.snow.resolver import REGION_GROUPS, _RESORTS_BY_REGION
+from snowbot.snow.formatter import SnowFormatter
+from snowbot.snow.service import SnowService
+from snowbot.storage.db import Database
 
 logger = logging.getLogger(__name__)
 
@@ -589,7 +589,7 @@ class Snowbot:
             channel = next(iter(self._notify_channels.values()), None)
         if channel is None:
             logger.error("[bot] No notification channel available!")
-            from bluesky_snowbot.channels.notify.base import NotificationResult
+            from snowbot.channels.notify.base import NotificationResult
             return NotificationResult(success=False, channel="none", error="No channel")
         return channel.send(payload)
 

@@ -1,8 +1,8 @@
-"""Shared pytest fixtures for bluesky_snowbot tests."""
+"""Shared pytest fixtures for snowbot tests."""
 
 import pytest
 
-from bluesky_snowbot.storage.db import Database
+from snowbot.storage.db import Database
 
 
 @pytest.fixture
@@ -14,13 +14,13 @@ def db():
 
 @pytest.fixture
 def sample_resort_location():
-    from bluesky_snowbot.snow.models import ResortLocation
+    from snowbot.snow.models import ResortLocation
     return ResortLocation(name="Vail", lat=39.6433, lon=-106.3781, state="CO", elevation_m=3527)
 
 
 @pytest.fixture
 def sample_snow_report(sample_resort_location):
-    from bluesky_snowbot.snow.models import SnowDepthReport, ConditionsReport, SnowReport
+    from snowbot.snow.models import SnowDepthReport, ConditionsReport, SnowReport
     return SnowReport(
         location=sample_resort_location,
         snow=SnowDepthReport(

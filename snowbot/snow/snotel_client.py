@@ -8,7 +8,7 @@ Fetches two key variables for a given AWDB station triplet:
 The AWDB API is free with no key required.
 
 Usage:
-    from bluesky_snowbot.snow.snotel_client import SnotelClient
+    from snowbot.snow.snotel_client import SnotelClient
     data = SnotelClient().fetch("780:CO:SNTL")
     # → SnotelReport or None if station has no data
 """

@@ -7,7 +7,7 @@ lat/lon coordinate. Uses the free Open-Meteo API (no key required).
 API docs: https://open-meteo.com/en/docs
 
 Usage:
-    from bluesky_snowbot.snow.client import SnowClient
+    from snowbot.snow.client import SnowClient
     data = SnowClient().fetch(lat=39.6433, lon=-106.3781)
 """
 

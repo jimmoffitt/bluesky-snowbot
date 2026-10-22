@@ -6,7 +6,7 @@ Usage:
     python scripts/post_random_photo.py --dry-run      # preview without posting
     python scripts/post_random_photo.py --photo corduroy.jpg  # specific photo
 
-Photos are loaded from PHOTOS_PATH (or bluesky_snowbot/data/photos by default).
+Photos are loaded from PHOTOS_PATH (or snowbot/data/photos by default).
 Credentials are read from .local.env.
 """
 
@@ -20,8 +20,8 @@ from pathlib import Path
 # Allow running from the project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bluesky_snowbot.config.settings import Settings
-from bluesky_snowbot.content import ContentLibrary
+from snowbot.config.settings import Settings
+from snowbot.content import ContentLibrary
 
 
 def post_photo(photo, dry_run: bool = False) -> None:

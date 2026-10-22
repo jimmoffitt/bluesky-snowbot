@@ -29,8 +29,8 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 
-from bluesky_snowbot.channels.alert.base import AlertChannel, AlertRequest
-from bluesky_snowbot.config.settings import Settings
+from snowbot.channels.alert.base import AlertChannel, AlertRequest
+from snowbot.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
