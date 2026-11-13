@@ -13,6 +13,7 @@ Tables:
   seen_dm_ids     — DM message IDs already processed (survives restarts)
   user_prefs      — per-user preferences set via DM
   file_inbox_log  — audit trail for file watcher activity
+  photo_posts     — when each user was last sent each photo (per-user rotation)
 
 Views:
   latency_summary — per-request latency breakdown in seconds
@@ -160,6 +161,14 @@ class Database:
                 outcome       TEXT    NOT NULL,
                 request_id    INTEGER REFERENCES requests(id),
                 error_detail  TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS photo_posts (
+                user_did        TEXT    NOT NULL,
+                filename        TEXT    NOT NULL,
+                last_posted_at  TEXT    NOT NULL,
+                post_count      INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (user_did, filename)
             );
 
             CREATE VIEW IF NOT EXISTS latency_summary AS
@@ -525,6 +534,29 @@ class Database:
         )
         self._conn.commit()
         return cur.lastrowid
+
+    # ------------------------------------------------------------------
+    # photo_posts (not pruned: the history is what prevents repeats)
+    # ------------------------------------------------------------------
+
+    def get_photo_last_posted(self, user_did: str) -> dict[str, str]:
+        """Map of photo filename → when this user was last sent it (ISO timestamp)."""
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT filename, last_posted_at FROM photo_posts WHERE user_did = ?", (user_did,)
+        )
+        return {r["filename"]: r["last_posted_at"] for r in rows}
+
+    def record_photo_post(self, user_did: str, filename: str) -> None:
+        assert self._conn
+        self._conn.execute(
+            """INSERT INTO photo_posts (user_did, filename, last_posted_at) VALUES (?, ?, ?)
+               ON CONFLICT(user_did, filename) DO UPDATE SET
+                   last_posted_at = excluded.last_posted_at,
+                   post_count     = post_count + 1""",
+            (user_did, filename, _now()),
+        )
+        self._conn.commit()
 
     # ------------------------------------------------------------------
     # Maintenance

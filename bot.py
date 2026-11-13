@@ -406,7 +406,9 @@ class Snowbot:
         elif branch == "photos":
             # Photos posted publicly (DM image embeds not supported by Bluesky).
             # When DM image support is added, replace _post_public_photo with _send_photo_dm.
-            photo = self._content.random_photo()
+            # Each user gets their own no-repeat rotation through the photos
+            seen = self._db.get_photo_last_posted(did) if did else {}
+            photo = self._content.pick_photo(seen)
             if photo:
                 self._post_public_photo(request, photo)
             else:
@@ -533,6 +535,8 @@ class Snowbot:
                 mention_did=request.requester_did or "",
             )
             logger.info("[bot] Posted photo publicly: %s", uri)
+            if request.requester_did:
+                self._db.record_photo_post(request.requester_did, photo.filename)
             # The post lives on the bot's own profile, not the requester's
             post_url = _uri_to_url(uri, self._settings.bluesky_handle)
             msg = f"📸 Just posted a snow photo for you!\n\n{post_url}" if post_url else "📸 Just posted a snow photo for you!"

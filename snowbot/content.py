@@ -152,3 +152,20 @@ class ContentLibrary:
 
     def random_photo(self) -> Optional[Photo]:
         return random.choice(self._photos) if self._photos else None
+
+    def pick_photo(self, last_posted: dict[str, str]) -> Optional[Photo]:
+        """
+        Pick a photo for one user, avoiding repeats for that user.
+
+        last_posted maps filename → when this user was last sent it. Photos the
+        user hasn't seen are chosen first (in random order), so nothing repeats
+        for them until they've seen every photo. After that, the pick is random
+        among the half they saw longest ago. Other users' history doesn't matter.
+        """
+        if not self._photos:
+            return None
+        unseen = [p for p in self._photos if p.filename not in last_posted]
+        if unseen:
+            return random.choice(unseen)
+        by_age = sorted(self._photos, key=lambda p: last_posted[p.filename])
+        return random.choice(by_age[:max(1, len(by_age) // 2)])

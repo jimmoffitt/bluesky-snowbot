@@ -70,6 +70,17 @@ def test_photos_from_main_menu(bot):
     assert f"https://bsky.app/profile/{bot._settings.bluesky_handle}/post/abc" in bot.dm.sent[-1]
 
 
+def test_photo_requests_do_not_repeat(bot):
+    n = len(bot._content.all_photos())
+    if n < 2:
+        pytest.skip("need at least 2 local photos")
+    for _ in range(min(n, 5)):
+        _dm(bot, "photos")
+    paths = [p["photo_path"] for p in bot.post.photos]
+    assert len(paths) == len(set(paths))
+    assert len(bot._db.get_photo_last_posted("did:plc:tester")) == len(paths)
+
+
 def test_set_state_and_settings(bot):
     _dm(bot, "set state CO")
     assert "Colorado" in bot.dm.sent[-1]
