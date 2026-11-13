@@ -62,3 +62,15 @@ def test_short_words_do_not_match_inside_resort_names(resolver, monkeypatch, tex
     monkeypatch.setattr(SnowResolver, "_geocode_fallback", staticmethod(lambda raw: None))
     with pytest.raises(ValueError):
         resolver.resolve(text)
+
+
+def test_midwest_resorts_resolve_without_stealing_existing_names():
+    from snowbot.snow.resolver import SnowResolver, _RESORTS
+    r = SnowResolver.__new__(SnowResolver)
+    assert r.match_known("crystal mountain").state == "WA"
+    assert r.match_known("crystal mountain michigan").state == "MI"
+    assert r.match_known("snow at lutsen?").name == "Lutsen Mountains"
+    # Every alias in the table resolves to its own resort
+    for entry in _RESORTS:
+        for alias in entry["names"]:
+            assert r.match_known(alias).name == entry["display"], alias

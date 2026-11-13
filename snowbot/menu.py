@@ -67,6 +67,7 @@ STATE_NAMES: dict[str, str] = {
     "CO": "Colorado",
     "ID": "Idaho",
     "ME": "Maine",
+    "MI": "Michigan",
     "MN": "Minnesota",
     "MT": "Montana",
     "NH": "New Hampshire",
@@ -76,6 +77,7 @@ STATE_NAMES: dict[str, str] = {
     "UT": "Utah",
     "VT": "Vermont",
     "WA": "Washington",
+    "WI": "Wisconsin",
     "WY": "Wyoming",
     # Canada
     "AB": "Alberta",
@@ -104,6 +106,9 @@ REGION_ALIASES: dict[str, str] = {
     "east coast": "US East",
     "northeast":  "US East",
     "new england": "US East",
+    "midwest":    "US Midwest",
+    "upper midwest": "US Midwest",
+    "great lakes": "US Midwest",
     "canada":     "Canadian Rockies",
     "alps":       "Europe",
 }

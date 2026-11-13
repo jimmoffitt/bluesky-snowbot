@@ -272,3 +272,29 @@ def test_single_resort_area_goes_straight_to_report(bot):
     _dm(bot, "Andorra")
     assert len(bot.lookups) == 1
     assert "Grandvalira" in bot.lookups[0]
+
+
+@pytest.mark.parametrize("text, header, expected", [
+    ("Michigan",       "🎿 Michigan resorts",   "Boyne Mountain"),
+    ("Wisconsin",      "🎿 Wisconsin resorts",  "Granite Peak"),
+    ("Minnesota",      "🎿 Minnesota resorts",  "Lutsen Mountains"),
+    ("MI",             "🎿 Michigan resorts",   "Nub's Nob"),
+    ("midwest",        "🎿 US Midwest resorts", "Afton Alps"),
+    ("great lakes",    "🎿 US Midwest resorts", "Trollhaugen"),
+])
+def test_midwest_areas_list_their_resorts(bot, text, header, expected):
+    _dm(bot, text)
+    assert bot.dm.sent[-1].startswith(header)
+    assert expected in bot.dm.sent[-1]
+
+
+def test_midwest_is_its_own_region_and_minnesota_left_us_east(bot):
+    _dm(bot, "regions")
+    assert "US Midwest" in bot.dm.sent[-1]
+    _dm(bot, "US East")
+    assert "Afton Alps" not in bot.dm.sent[-1]
+
+
+def test_set_region_midwest(bot):
+    _dm(bot, "set region Midwest")
+    assert bot.dm.sent[-1].startswith("Home region set to US Midwest.")
