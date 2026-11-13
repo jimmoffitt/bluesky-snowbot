@@ -1,0 +1,95 @@
+{
+    "depth_cm": 0.0,
+    "new_24h_cm": 0.0,
+    "new_48h_cm": 0.0,
+    "new_72h_cm": 0.0,
+    "temp_c": 1.1,
+    "wind_speed_kmh": 12.6,
+    "wind_gusts_kmh": 15.8,
+    "weather_code": 0,
+    "weather_desc": "Clear sky",
+    "visibility_km": 59.8,
+    "forecast": [
+        {
+            "date": "2026-11-13",
+            "snowfall_cm": 0.0,
+            "temp_max_c": 11.4,
+            "temp_min_c": -1.6,
+            "weather_code": 3,
+            "weather_desc": "Overcast",
+            "precip_cm": 0.0,
+            "wind_max_kmh": 12.0,
+            "is_forecast": true
+        },
+        {
+            "date": "2026-11-14",
+            "snowfall_cm": 0.0,
+            "temp_max_c": 5.2,
+            "temp_min_c": -3.9,
+            "weather_code": 55,
+            "weather_desc": "Dense drizzle",
+            "precip_cm": 2.1,
+            "wind_max_kmh": 13.8,
+            "is_forecast": true
+        },
+        {
+            "date": "2026-11-15",
+            "snowfall_cm": 0.1,
+            "temp_max_c": 6.1,
+            "temp_min_c": -5.0,
+            "weather_code": 71,
+            "weather_desc": "Slight snowfall",
+            "precip_cm": 0.1,
+            "wind_max_kmh": 7.4,
+            "is_forecast": true
+        },
+        {
+            "date": "2026-11-16",
+            "snowfall_cm": 0.0,
+            "temp_max_c": 9.5,
+            "temp_min_c": -5.3,
+            "weather_code": 3,
+            "weather_desc": "Overcast",
+            "precip_cm": 0.0,
+            "wind_max_kmh": 6.5,
+            "is_forecast": true
+        },
+        {
+            "date": "2026-11-17",
+            "snowfall_cm": 0.2,
+            "temp_max_c": 10.0,
+            "temp_min_c": -2.7,
+            "weather_code": 71,
+            "weather_desc": "Slight snowfall",
+            "precip_cm": 0.3,
+            "wind_max_kmh": 11.2,
+            "is_forecast": true
+        },
+        {
+            "date": "2026-11-18",
+            "snowfall_cm": 0.0,
+            "temp_max_c": 1.9,
+            "temp_min_c": -8.1,
+            "weather_code": 53,
+            "weather_desc": "Moderate drizzle",
+            "precip_cm": 2.4,
+            "wind_max_kmh": 22.9,
+            "is_forecast": true
+        },
+        {
+            "date": "2026-11-19",
+            "snowfall_cm": 0.0,
+            "temp_max_c": 4.9,
+            "temp_min_c": -7.9,
+            "weather_code": 3,
+            "weather_desc": "Overcast",
+            "precip_cm": 0.0,
+            "wind_max_kmh": 17.2,
+            "is_forecast": true
+        }
+    ],
+    "snotel": null,
+    "operations": null,
+    "data_source": "Open-Meteo",
+    "fetched_at": "2026-11-12T20:40:37.483707"
+}
