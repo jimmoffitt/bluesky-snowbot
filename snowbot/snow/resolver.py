@@ -281,7 +281,7 @@ _RESORTS: list[dict] = [
      "display": "The Highlands", "lat": 45.4770, "lon": -84.9454, "state": "MI", "elev": 363,
      "postal_code": "49740", "sc_id": None, "snotel": None, "snotel_dist_mi": None},
     {"names": ["crystal mountain michigan", "crystal mountain mi"],
-     "display": "Crystal Mountain (MI)", "lat": 44.5193, "lon": -85.9907, "state": "MI", "elev": 243,
+     "display": "Crystal Mountain", "lat": 44.5193, "lon": -85.9907, "state": "MI", "elev": 243,
      "postal_code": "49683", "sc_id": None, "snotel": None, "snotel_dist_mi": None},
     {"names": ["nubs nob", "nub's nob"],
      "display": "Nub's Nob", "lat": 45.4668, "lon": -84.9019, "state": "MI", "elev": 390,
@@ -570,6 +570,22 @@ for _entry in _RESORTS:
     for _alias in _entry["names"]:
         _LOOKUP[_alias] = _entry
 _KEYS_LONGEST_FIRST: list[str] = sorted(_LOOKUP, key=len, reverse=True)
+
+
+def resort_query(entry: dict) -> str:
+    """
+    A lookup string that resolves back to exactly this resort.
+
+    Used when a resort is picked from a numbered list. The display name isn't
+    always unique or in the alias table ("Crystal Mountain" is in WA and MI;
+    "Mt. Rose" has only the alias "mt rose"), so fall back to its first alias.
+    """
+    if _LOOKUP.get(entry["display"].lower()) is entry:
+        return entry["display"]
+    for name in entry["names"]:
+        if _LOOKUP.get(name) is entry:
+            return name
+    return entry["names"][0]
 
 
 class SnowResolver:

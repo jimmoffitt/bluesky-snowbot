@@ -1,5 +1,7 @@
 """DM flow through Snowbot._handle_request with fake notify channels (no network)."""
 
+import re
+
 import pytest
 
 from snowbot.channels.alert.base import AlertRequest
@@ -30,7 +32,15 @@ def bot(tmp_path, monkeypatch):
     b = Snowbot(settings)
     b._db.connect()
     b.lookups = []
-    monkeypatch.setattr(b._snow, "lookup", lambda raw: b.lookups.append(raw) or (_ for _ in ()).throw(ValueError(raw)))
+    b.snow_lookups_resolved = []
+
+    def fake_lookup(raw):
+        b.lookups.append(raw)
+        loc = b._snow._resolver.match_known(raw)
+        if loc:
+            b.snow_lookups_resolved.append((loc.name, loc.state))
+        raise ValueError(raw)
+    monkeypatch.setattr(b._snow, "lookup", fake_lookup)
     b.dm, b.post = FakeChannel("bluesky_dm"), FakeChannel("bluesky_post")
     b.register_notify_channel(b.dm)
     b.register_notify_channel(b.post)
@@ -280,7 +290,7 @@ def test_lowercase_two_letter_words_are_not_areas(bot, text):
 def test_single_resort_area_goes_straight_to_report(bot):
     _dm(bot, "Andorra")
     assert len(bot.lookups) == 1
-    assert "Grandvalira" in bot.lookups[0]
+    assert "grandvalira" in bot.lookups[0].lower()
 
 
 @pytest.mark.parametrize("text, header, expected", [
@@ -364,3 +374,41 @@ def test_back_to_home_list_keeps_clear_hint(bot):
     reply = bot.dm.sent[-1]
     assert "🎿 Colorado resorts" in reply
     assert "Clear it: clear region" in reply
+
+
+def test_midwest_list_shows_each_resorts_state(bot):
+    _dm(bot, "midwest")
+    reply = bot.dm.sent[-1]
+    assert "Afton Alps, MN" in reply
+    assert "Granite Peak, WI" in reply
+    assert "Crystal Mountain, MI" in reply
+
+
+@pytest.mark.parametrize("text", ["Colorado", "Michigan", "US Rockies"])
+def test_other_lists_do_not_add_state(bot, text):
+    _dm(bot, text)
+    assert not re.search(r"\d+\. [^\n]+, [A-Z]{2} ", bot.dm.sent[-1])
+
+
+def test_picking_michigan_crystal_mountain_gets_michigan(bot):
+    _dm(bot, "Michigan")
+    lines = bot.dm.sent[-1].splitlines()
+    n = next(l.split(".")[0] for l in lines if "Crystal Mountain" in l)
+    _dm(bot, n)
+    assert bot.snow_lookups_resolved[-1] == ("Crystal Mountain", "MI")
+
+
+@pytest.mark.parametrize("text, header", [
+    ("region midwest",          "🎿 US Midwest resorts"),
+    ("Region Midwest",          "🎿 US Midwest resorts"),
+    ("midwest region",          "🎿 US Midwest resorts"),
+    ("region great lakes",      "🎿 US Midwest resorts"),
+    ("state michigan",          "🎿 Michigan resorts"),
+    ("region MI",               "🎿 Michigan resorts"),
+    ("show me Colorado resorts", "🎿 Colorado resorts"),
+    ("resorts in Japan",        "🎿 Japan resorts"),
+])
+def test_region_phrases_list_resorts(bot, text, header):
+    _dm(bot, text)
+    assert bot.dm.sent[-1].startswith(header)
+    assert bot.lookups == []

@@ -98,6 +98,9 @@ STATE_NAMES: dict[str, str] = {
 }
 
 
+# Regions whose resort lists show each resort's state ("Afton Alps, MN")
+STATE_SUFFIX_REGIONS = {"US Midwest"}
+
 # Informal names for the regions in REGION_GROUPS
 REGION_ALIASES: dict[str, str] = {
     "rockies":    "US Rockies",
@@ -139,22 +142,28 @@ def resolve_area(text: str) -> Optional[str]:
     return REGION_ALIASES.get(t)
 
 
+_AREA_PREFIX = re.compile(
+    r"^(?:show me |show |list |(?:ski )?resorts in |region |state |province |country )+",
+    re.IGNORECASE,
+)
+_AREA_SUFFIX = re.compile(r"(?: ski resorts| resorts| skiing| region| state)$", re.IGNORECASE)
+
+
 def find_area_request(text: str) -> Optional[str]:
     """
-    Area key if a whole DM names a state, country, or region ("Colorado",
-    "japan", "US Rockies resorts"), else None.
+    Area key if a whole DM names a state, country, or region, else None.
 
-    Two-letter codes count only when typed in capitals ("CO", "NZ"), so words
-    like "me", "it", "or", "at" are never mistaken for Maine, Italy, etc.
+    Accepts the bare name ("Colorado", "japan") and common wrappers:
+    "region midwest", "midwest region", "state michigan", "Utah resorts",
+    "show me Colorado resorts", "resorts in Japan".
+
+    Two-letter codes count only when typed in capitals ("CO", "region MI"), so
+    words like "me", "it", "or", "at" are never mistaken for Maine, Italy, etc.
     """
-    t = _normalize(text)
-    for suffix in (" ski resorts", " resorts", " skiing"):
-        if t.endswith(suffix):
-            t = t[: -len(suffix)]
-            break
+    t = " ".join(re.sub(r"[^\w\s'-]", " ", text).split())   # drop punctuation, keep case
+    t = _AREA_SUFFIX.sub("", _AREA_PREFIX.sub("", t)).strip()
     if len(t) == 2:
-        stripped = text.strip()
-        return stripped if stripped in STATE_NAMES else None
+        return t if t in STATE_NAMES else None
     return resolve_area(t)
 
 
@@ -285,7 +294,10 @@ def format_resorts_menu(region: str, resorts: list[dict], note: str = "",
     lines = []
     for i, resort in enumerate(resorts, 1):
         icon = snotel_icon(resort.get("snotel_dist_mi"), resort.get("snotel"))
-        lines.append(f"{i}. {resort['display']} {icon}")
+        name = resort["display"]
+        if region in STATE_SUFFIX_REGIONS:
+            name = f"{name}, {resort['state']}"
+        lines.append(f"{i}. {name} {icon}")
     footer = "\nReply with a number — or 'back' for regions.\n❄ on-mtn SNOTEL  ≈ nearby  ○ model only"
     if home_hint:
         footer += HOME_REGION_CLEAR_HINT

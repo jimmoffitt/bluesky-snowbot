@@ -55,7 +55,7 @@ from snowbot.menu import (
     is_small_talk,
     area_display, area_label, area_resorts, find_area_request, resolve_area,
 )
-from snowbot.snow.resolver import _RESORTS_BY_REGION
+from snowbot.snow.resolver import _RESORTS_BY_REGION, resort_query
 from snowbot.snow.formatter import SnowFormatter
 from snowbot.snow.service import SnowService
 from snowbot.storage.db import Database
@@ -203,7 +203,7 @@ class Snowbot:
             resorts = area_resorts(area)
             if len(resorts) == 1:
                 # One-resort area ("Andorra") — just give the report
-                request.raw_location = resorts[0]["display"]
+                request.raw_location = resort_query(resorts[0])
             elif resorts:
                 if request.requester_did:
                     self._db.set_dm_session(request.requester_did, "resorts", state=area)
@@ -534,7 +534,7 @@ class Snowbot:
             # but remember the region so "back" can reopen it
             if did:
                 self._db.set_dm_session(did, "report", state=region)
-            request.raw_location = resort_entry["display"]
+            request.raw_location = resort_query(resort_entry)
             return False  # fall through to normal snow lookup
 
         elif menu == "learn":

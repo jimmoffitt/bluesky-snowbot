@@ -74,3 +74,11 @@ def test_midwest_resorts_resolve_without_stealing_existing_names():
     for entry in _RESORTS:
         for alias in entry["names"]:
             assert r.match_known(alias).name == entry["display"], alias
+
+
+def test_every_resort_picked_from_a_list_resolves_to_itself():
+    from snowbot.snow.resolver import SnowResolver, _RESORTS, resort_query
+    r = SnowResolver.__new__(SnowResolver)
+    for entry in _RESORTS:
+        loc = r.match_known(resort_query(entry))
+        assert loc is not None and (loc.name, loc.state) == (entry["display"], entry["state"]), entry["display"]
