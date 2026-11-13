@@ -16,10 +16,12 @@ multiple messages when needed.
 from __future__ import annotations
 
 import re
+import unicodedata
+from typing import Optional
 
 from snowbot.channels.notify.bluesky_dm import DM_MAX_CHARS
 from snowbot.content import ContentLibrary
-from snowbot.snow.resolver import snotel_icon
+from snowbot.snow.resolver import REGION_GROUPS, _RESORTS, _RESORTS_BY_REGION, snotel_icon
 
 # ---------------------------------------------------------------------------
 # Trigger keyword sets (checked case-insensitively against stripped DM text)
@@ -94,6 +96,71 @@ STATE_NAMES: dict[str, str] = {
 }
 
 
+# Informal names for the regions in REGION_GROUPS
+REGION_ALIASES: dict[str, str] = {
+    "rockies":    "US Rockies",
+    "us west":    "US West Coast",
+    "west coast": "US West Coast",
+    "east coast": "US East",
+    "northeast":  "US East",
+    "new england": "US East",
+    "canada":     "Canadian Rockies",
+    "alps":       "Europe",
+}
+
+
+# ---------------------------------------------------------------------------
+# Areas — a saved home area is either a state/province code ("CO") or a
+# region name ("US Rockies"). "set region" and "set state" accept either.
+# ---------------------------------------------------------------------------
+
+def resolve_area(text: str) -> Optional[str]:
+    """
+    Map user text to an area key: a STATE_NAMES code or a REGION_GROUPS name.
+    Accepts codes ("co"), names ("Colorado", "Quebec"), regions ("us rockies",
+    "Japan") and REGION_ALIASES ("west coast"). Returns None if unrecognised.
+    """
+    t = _normalize(text)
+    if not t:
+        return None
+    if t.upper() in STATE_NAMES:
+        return t.upper()
+    for code, name in STATE_NAMES.items():
+        if _normalize(name) == t:
+            return code
+    for region in REGION_GROUPS:
+        if _normalize(region) == t:
+            return region
+    return REGION_ALIASES.get(t)
+
+
+def area_resorts(key: Optional[str]) -> list[dict]:
+    """Resorts in an area (region name or state code), sorted by name."""
+    if not key:
+        return []
+    if key in _RESORTS_BY_REGION:
+        return _RESORTS_BY_REGION[key]
+    return sorted((e for e in _RESORTS if e["state"] == key), key=lambda e: e["display"])
+
+
+def area_label(key: str) -> str:
+    """Short display name: "Colorado" for CO, the region name itself otherwise."""
+    return STATE_NAMES.get(key, key) if key not in REGION_GROUPS else key
+
+
+def area_display(key: str) -> str:
+    """Settings-style name: "Colorado (CO)" for states, "US Rockies" for regions."""
+    if key in STATE_NAMES and key not in REGION_GROUPS:
+        return f"{STATE_NAMES[key]} ({key})"
+    return key
+
+
+def _normalize(text: str) -> str:
+    """Lowercase, strip accents and punctuation: "Québec!" → "quebec"."""
+    t = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return " ".join(re.sub(r"[^\w\s]", " ", t.lower()).split())
+
+
 def is_menu_trigger(text: str) -> bool:
     return text.strip().lower() in MENU_TRIGGERS
 
@@ -153,7 +220,13 @@ def format_regions_menu(resorts_by_region: dict) -> list[str]:
     for i, (region, resorts) in enumerate(resorts_by_region.items(), 1):
         count = len(resorts)
         lines.append(f"{i}. {region} ({count} resort{'s' if count != 1 else ''})")
-    return _pack_lines("🎿 Select a region:\n\n", lines, footer="\nReply with a number — or 'menu' for main menu.")
+    footer = (
+        "\nReply with a number — or 'menu' for main menu.\n\n"
+        "Set a default so 'snow reports' opens your area:\n"
+        "  set region Colorado  (or CO, Japan, US Rockies…)\n"
+        "Clear it: clear region"
+    )
+    return _pack_lines("🎿 Select a region:\n\n", lines, footer=footer)
 
 
 def format_resorts_menu(region: str, resorts: list[dict]) -> list[str]:
@@ -238,7 +311,8 @@ def format_help() -> str:
         "  music — weather & mountain playlists\n"
         "  regions — browse all regions\n"
         "  set home Vail — save home resort\n"
-        "  set region CO — save home region\n"
+        "  set region Colorado — save home region\n"
+        "     (or CO, Japan, US Rockies…)\n"
         "  settings — view preferences\n"
         "  reset — clear preferences"
     )

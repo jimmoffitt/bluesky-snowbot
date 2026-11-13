@@ -104,17 +104,61 @@ def test_small_talk_is_not_a_location(bot, text):
     assert "resort name" in bot.dm.sent[-1]
 
 
-def test_home_state_jumps_to_its_region(bot):
+def test_home_state_opens_that_states_resorts(bot):
     _dm(bot, "set state CO")
     _dm(bot, "menu")
     _dm(bot, "1")
-    assert any(m.startswith("🎿 US Rockies resorts") for m in bot.dm.sent[-3:])
+    assert bot.dm.sent[-1].startswith("🎿 Colorado resorts")
+
+
+def test_home_region_opens_that_regions_resorts(bot):
+    _dm(bot, "set region Japan")
+    _dm(bot, "menu")
+    _dm(bot, "1")
+    assert bot.dm.sent[-1].startswith("🎿 Japan resorts")
+
+
+@pytest.mark.parametrize("text", [
+    "set region CO", "set state CO", "set region colorado", "set state Colorado",
+])
+def test_set_region_and_set_state_both_list_the_resorts(bot, text):
+    _dm(bot, text)
+    reply = bot.dm.sent[-1]
+    assert reply.startswith("Home region set to Colorado (CO).")
+    assert "🎿 Colorado resorts" in reply
+    assert "Vail" in reply and "Park City" not in reply
+    # The list is live: a number picks from it
+    _dm(bot, "1")
+    assert bot.lookups == ["Arapahoe Basin"]
+
+
+@pytest.mark.parametrize("text, header, setting", [
+    ("set region US Rockies", "🎿 US Rockies resorts", "Home region: US Rockies"),
+    ("set state japan",       "🎿 Japan resorts",      "Home region: Japan"),
+    ("set region west coast", "🎿 US West Coast resorts", "Home region: US West Coast"),
+    ("set region Québec",     "🎿 Québec resorts",     "Home region: Québec (QC)"),
+    ("set region quebec",     "🎿 Québec resorts",     "Home region: Québec (QC)"),
+])
+def test_set_region_accepts_names_and_regions(bot, text, header, setting):
+    _dm(bot, text)
+    assert header in bot.dm.sent[-1]
+    _dm(bot, "settings")
+    assert setting in bot.dm.sent[-1]
+
+
+@pytest.mark.parametrize("text", ["set region Narnia", "set region", "set state AZ"])
+def test_set_region_unknown_or_empty_gives_examples(bot, text):
+    _dm(bot, text)
+    assert "set region Colorado" in bot.dm.sent[-1]
+    _dm(bot, "settings")
+    assert "Home region: not set" in bot.dm.sent[-1]
 
 
 @pytest.mark.parametrize("text", ["regions", "back"])
 def test_other_regions_reachable_with_home_state(bot, text):
     _dm(bot, "set state CO")
-    _dm(bot, "1")
+    _dm(bot, "menu")
+    _dm(bot, "1")      # snow reports → Colorado resorts
     _dm(bot, text)
     assert bot.dm.sent[-1].startswith("🎿 Select a region")
 
@@ -184,3 +228,11 @@ def test_large_resort_list_is_one_dm(bot):
         _dm(bot, text)
     assert bot.dm.sent[-1].startswith("🎿 US Rockies resorts")
     assert len(bot.dm.sent[-1]) <= 1000
+
+
+def test_regions_menu_explains_default_region(bot):
+    _dm(bot, "regions")
+    reply = bot.dm.sent[-1]
+    assert reply.startswith("🎿 Select a region")
+    assert "set region Colorado" in reply
+    assert "clear region" in reply

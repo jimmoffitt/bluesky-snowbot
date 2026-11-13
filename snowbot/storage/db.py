@@ -448,18 +448,19 @@ class Database:
         )
         self._conn.commit()
 
-    def set_home_state(self, did: str, state_code: str) -> None:
+    def set_home_state(self, did: str, area: str) -> None:
+        """Save the home area: a state code ("CO") or region name ("US Rockies"), stored as given."""
         assert self._conn
         existing = self.get_user_prefs(did)
         if existing is None:
             self._conn.execute(
                 "INSERT INTO user_prefs (user_did, home_state, updated_at) VALUES (?, ?, ?)",
-                (did, state_code.upper(), _now()),
+                (did, area, _now()),
             )
         else:
             self._conn.execute(
                 "UPDATE user_prefs SET home_state = ?, updated_at = ? WHERE user_did = ?",
-                (state_code.upper(), _now(), did),
+                (area, _now(), did),
             )
         self._conn.commit()
 
