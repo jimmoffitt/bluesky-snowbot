@@ -98,8 +98,9 @@ STATE_NAMES: dict[str, str] = {
 }
 
 
-# Regions whose resort lists show each resort's state ("Afton Alps, MN")
-STATE_SUFFIX_REGIONS = {"US Midwest"}
+# Regions whose resort lists are grouped under state labels, states in
+# alphabetical order and resorts alphabetical within each state
+GROUPED_REGIONS = {"US Midwest"}
 
 # Informal names for the regions in REGION_GROUPS
 REGION_ALIASES: dict[str, str] = {
@@ -168,9 +169,18 @@ def find_area_request(text: str) -> Optional[str]:
 
 
 def area_resorts(key: Optional[str]) -> list[dict]:
-    """Resorts in an area (region name or state code), sorted by name."""
+    """
+    Resorts in an area (region name or state code), in list order.
+
+    Sorted by name, except GROUPED_REGIONS, which are sorted by state name and
+    then resort name. Numbered picks index into this list, so it must match
+    the order format_resorts_menu shows.
+    """
     if not key:
         return []
+    if key in GROUPED_REGIONS:
+        return sorted(_RESORTS_BY_REGION.get(key, []),
+                      key=lambda e: (STATE_NAMES.get(e["state"], e["state"]), e["display"]))
     if key in _RESORTS_BY_REGION:
         return _RESORTS_BY_REGION[key]
     return sorted((e for e in _RESORTS if e["state"] == key), key=lambda e: e["display"])
@@ -266,6 +276,23 @@ def format_regions_menu(resorts_by_region: dict, home: Optional[str] = None) -> 
     return _pack_lines("🎿 Select a region:\n\n", lines, footer=footer)
 
 
+# Shown under every resort list; each icon also appears next to each resort
+SNOW_DATA_LEGEND = (
+    "\n\n📊 Snow data:\n"
+    "  ❄  SNOTEL station on the mountain\n"
+    "  ≈  SNOTEL station nearby\n"
+    "  ○  Weather model only"
+)
+
+# FIGURE SPACE: as wide as a digit in most fonts, so padded numbers line up
+# even though DMs aren't monospaced
+_FIGURE_SPACE = "\u2007"
+
+
+def _pad_number(n: int, width: int) -> str:
+    return str(n).rjust(width, _FIGURE_SPACE)
+
+
 SET_HOME_REGION_TIP = (
     "\n\nTip: save a home region and 'snow reports' opens your resorts "
     "right away, no browsing:\n"
@@ -291,14 +318,24 @@ def format_resorts_menu(region: str, resorts: list[dict], note: str = "",
     header = f"🎿 {region} resorts:\n\n"
     if note:
         header = f"{note}\n\n{header}"
+    grouped = region in GROUPED_REGIONS
+    width = len(str(len(resorts)))
     lines = []
+    current_state = None
     for i, resort in enumerate(resorts, 1):
         icon = snotel_icon(resort.get("snotel_dist_mi"), resort.get("snotel"))
-        name = resort["display"]
-        if region in STATE_SUFFIX_REGIONS:
-            name = f"{name}, {resort['state']}"
-        lines.append(f"{i}. {name} {icon}")
-    footer = "\nReply with a number — or 'back' for regions.\n❄ on-mtn SNOTEL  ≈ nearby  ○ model only"
+        num = _pad_number(i, width)
+        if grouped:
+            # State name on its own line, resorts indented beneath it:
+            #   Minnesota
+            #        9 Afton Alps ○
+            if resort["state"] != current_state:
+                current_state = resort["state"]
+                lines.append(STATE_NAMES.get(current_state, current_state))
+            lines.append(f"    {num} {resort['display']} {icon}")
+        else:
+            lines.append(f"{num}. {resort['display']} {icon}")
+    footer = "\nReply with a number — or 'back' for regions." + SNOW_DATA_LEGEND
     if home_hint:
         footer += HOME_REGION_CLEAR_HINT
     elif set_hint:

@@ -42,7 +42,7 @@ from snowbot.snow.resolver import _RESORTS_BY_REGION                     # noqa:
 from snowbot.snow.service import _deserialize_report                     # noqa: E402
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-WIDTH, HEIGHT, SCALE = 440, 860, 2
+WIDTH, HEIGHT, SCALE = 440, 1120, 2
 OUT_WIDTH = 440
 
 # Latency footers are real in production but read as "0.0s" here — drop them

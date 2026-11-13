@@ -376,12 +376,28 @@ def test_back_to_home_list_keeps_clear_hint(bot):
     assert "Clear it: clear region" in reply
 
 
-def test_midwest_list_shows_each_resorts_state(bot):
+def test_midwest_list_is_grouped_by_state_alphabetically(bot):
     _dm(bot, "midwest")
-    reply = bot.dm.sent[-1]
-    assert "Afton Alps, MN" in reply
-    assert "Granite Peak, WI" in reply
-    assert "Crystal Mountain, MI" in reply
+    lines = bot.dm.sent[-1].splitlines()
+    # State labels on their own lines, in alphabetical order
+    assert [l for l in lines if l in ("Michigan", "Minnesota", "Wisconsin")] == \
+        ["Michigan", "Minnesota", "Wisconsin"]
+    # Resorts indented beneath, "    N Name icon", numbered 1..21 straight through
+    numbered = [l for l in lines if re.match(r"    \u2007?\d+ ", l)]
+    assert [int(l.split()[0]) for l in numbered] == list(range(1, 22))
+    mi = lines[lines.index("Michigan") + 1 : lines.index("Minnesota")]
+    names = [re.sub(r"^    \u2007?\d+ | [❄≈○]$", "", l) for l in mi]
+    assert names == sorted(names) and "Boyne Mountain" in names
+    assert lines[lines.index("Minnesota") + 1] == "    \u20079 Afton Alps ○"
+    assert ", MN" not in bot.dm.sent[-1]
+
+
+def test_midwest_numbers_pick_the_resort_shown(bot):
+    _dm(bot, "midwest")
+    lines = bot.dm.sent[-1].splitlines()
+    n = next(l.split()[0] for l in lines if "Lutsen Mountains" in l)
+    _dm(bot, n)
+    assert bot.snow_lookups_resolved[-1] == ("Lutsen Mountains", "MN")
 
 
 @pytest.mark.parametrize("text", ["Colorado", "Michigan", "US Rockies"])
@@ -412,3 +428,20 @@ def test_region_phrases_list_resorts(bot, text, header):
     _dm(bot, text)
     assert bot.dm.sent[-1].startswith(header)
     assert bot.lookups == []
+
+
+def test_resort_lists_pad_numbers_and_show_the_legend(bot):
+    _dm(bot, "Colorado")                       # 15 resorts → two-digit numbers
+    reply = bot.dm.sent[-1]
+    assert "\u20071. Arapahoe Basin" in reply   # single digits padded
+    assert "\n13. Vail" in reply                # double digits not padded
+    assert "📊 Snow data:" in reply
+    assert "SNOTEL station on the mountain" in reply and "Weather model only" in reply
+
+
+def test_padded_number_still_picks_the_resort(bot):
+    _dm(bot, "Colorado")
+    _dm(bot, "\u20076")                       # as if copied from the list
+    _dm(bot, "Colorado")
+    _dm(bot, "4")
+    assert bot.snow_lookups_resolved[-1] == ("Breckenridge", "CO")
