@@ -236,7 +236,9 @@ def format_help() -> str:
         "  learn — snow science links\n"
         "  photos — post a snow photo for you\n"
         "  music — weather & mountain playlists\n"
+        "  regions — browse all regions\n"
         "  set home Vail — save home resort\n"
+        "  set region CO — save home region\n"
         "  settings — view preferences\n"
         "  reset — clear preferences"
     )

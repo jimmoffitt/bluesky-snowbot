@@ -308,7 +308,7 @@ class Snowbot:
 
         elif cmd == "set_state":
             raw = request.raw_content.strip()
-            for prefix in ("set state ", "set state"):
+            for prefix in ("set state ", "set state", "set region ", "set region"):
                 if raw.lower().startswith(prefix):
                     raw = raw[len(prefix):].strip()
                     break

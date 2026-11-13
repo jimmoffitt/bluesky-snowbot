@@ -261,11 +261,12 @@ class DMAlertChannel(AlertChannel):
         normalised = text.strip().lower()
         if normalised.startswith("set home"):
             return "set_home"
-        if normalised.startswith("set state"):
+        if normalised.startswith(("set state", "set region")):
             return "set_state"
         if normalised in ("clear home", "clearhome", "remove home", "reset home"):
             return "clear_home"
-        if normalised in ("clear state", "remove state", "reset state"):
+        if normalised in ("clear state", "remove state", "reset state",
+                          "clear region", "remove region", "reset region"):
             return "clear_state"
         if normalised in ("reset", "reset prefs", "reset preferences"):
             return "reset_prefs"

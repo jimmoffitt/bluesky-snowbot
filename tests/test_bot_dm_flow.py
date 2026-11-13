@@ -77,6 +77,15 @@ def test_set_state_and_settings(bot):
     assert "Colorado (CO)" in bot.dm.sent[-1]
 
 
+def test_set_region_alias_and_clear(bot):
+    _dm(bot, "set region co")
+    assert "Colorado (CO)" in bot.dm.sent[-1]
+    _dm(bot, "clear region")
+    assert bot.dm.sent[-1].startswith("Home region cleared.")
+    _dm(bot, "settings")
+    assert "Home region: not set" in bot.dm.sent[-1]
+
+
 @pytest.mark.parametrize("text", ["thanks!", "ok", "cool", "hello"])
 def test_small_talk_is_not_a_location(bot, text):
     _dm(bot, text)
@@ -89,6 +98,14 @@ def test_home_state_jumps_to_its_region(bot):
     _dm(bot, "menu")
     _dm(bot, "1")
     assert any(m.startswith("🎿 US Rockies resorts") for m in bot.dm.sent[-3:])
+
+
+@pytest.mark.parametrize("text", ["regions", "back"])
+def test_other_regions_reachable_with_home_state(bot, text):
+    _dm(bot, "set state CO")
+    _dm(bot, "1")
+    _dm(bot, text)
+    assert bot.dm.sent[-1].startswith("🎿 Select a region")
 
 
 @pytest.mark.parametrize("text", [
