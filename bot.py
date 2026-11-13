@@ -30,6 +30,8 @@ from __future__ import annotations
 import logging
 import signal
 import threading
+import time
+import traceback
 from datetime import datetime
 from typing import Optional
 
@@ -85,6 +87,9 @@ class Snowbot:
         self._notify_channels: dict[str, NotificationChannel] = {}
         self._running = False
         self._lock    = threading.Lock()
+        # Admin alert throttle: error key → (monotonic time last sent, count suppressed since)
+        self._admin_alerts: dict[str, tuple[float, int]] = {}
+        self._admin_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Channel registration
@@ -252,6 +257,7 @@ class Snowbot:
         except Exception as exc:
             logger.error("[bot] Snow lookup failed: %s", exc)
             self._send_error_reply(request, "Sorry, snow data is temporarily unavailable.")
+            self._alert_admin(request, exc, "Snow lookup failed")
             self._db.update_request_status(db_id, "error")
             return
 
@@ -565,6 +571,43 @@ class Snowbot:
         except Exception as exc:
             logger.error("[bot] Public photo post failed: %s", exc)
             self._send_dm_reply(request, "Sorry, couldn't post a photo right now.")
+            self._alert_admin(request, exc, "Photo post failed")
+
+    def _alert_admin(self, request: AlertRequest, exc: BaseException, what: str) -> None:
+        """
+        DM the admin (ADMIN_HANDLE) the details behind a failed request.
+
+        Throttled to one alert per error type per ADMIN_ALERT_COOLDOWN_SEC; the
+        next alert reports how many were suppressed. Only ever sent by DM —
+        never falls back to a public post. Never raises.
+        """
+        admin = self._settings.admin_handle
+        if not admin:
+            return
+        key = f"{what}:{type(exc).__name__}"
+        now = time.monotonic()
+        with self._admin_lock:
+            last, suppressed = self._admin_alerts.get(key, (None, 0))
+            if last is not None and now - last < ADMIN_ALERT_COOLDOWN_SEC:
+                self._admin_alerts[key] = (last, suppressed + 1)
+                logger.info("[bot] Admin alert throttled (%s, %d suppressed)", key, suppressed + 1)
+                return
+            self._admin_alerts[key] = (now, 0)
+
+        channel = self._notify_channels.get("bluesky_dm")
+        if channel is None:
+            logger.warning("[bot] No DM channel — admin alert not sent: %s", key)
+            return
+        text = format_admin_alert(request, exc, what, self._settings.server_type, suppressed)
+        try:
+            result = channel.send(NotificationPayload(
+                request_db_id=request.db_id, post_thread=[text],
+                recipient_handle=admin, target_channel="bluesky_dm",
+            ))
+            if not result.success:
+                logger.warning("[bot] Admin alert to @%s failed: %s", admin, result.error)
+        except Exception as alert_exc:
+            logger.error("[bot] Admin alert to @%s failed: %s", admin, alert_exc)
 
     def _send_dm_reply(self, request: AlertRequest, message: str) -> None:
         elapsed = (datetime.utcnow() - request.received_at).total_seconds()
@@ -639,8 +682,49 @@ class Snowbot:
 # Helpers
 # ---------------------------------------------------------------------------
 
+ADMIN_ALERT_COOLDOWN_SEC = 600
+
+
 def _now() -> str:
     return datetime.utcnow().isoformat()
+
+
+def format_admin_alert(request: AlertRequest, exc: BaseException, what: str,
+                       server_type: str = "", suppressed: int = 0) -> str:
+    """Plain-text error report for the admin DM: who asked, what failed, and why."""
+    who = request.requester_handle or request.requester_did or "unknown"
+    if who and not who.startswith("did:"):
+        who = "@" + who
+    lines = [
+        f"⚠️ Snowbot: {what}",
+        "",
+        f"From: {who} via {request.source_channel}",
+        f"Message: {request.raw_content[:120]!r}",
+    ]
+    if request.raw_location and request.raw_location != request.raw_content:
+        lines.append(f"Location: {request.raw_location!r}")
+    lines.append(f"When: {datetime.utcnow():%Y-%m-%d %H:%M:%S} UTC on {server_type}")
+    lines.append("")
+
+    # The exception and what caused it (requests wraps urllib3, which wraps socket errors)
+    seen, current, depth = set(), exc, 0
+    while current is not None and depth < 4 and id(current) not in seen:
+        seen.add(id(current))
+        prefix = "Error" if depth == 0 else "Caused by"
+        lines.append(f"{prefix}: {type(current).__name__}: {str(current)[:350]}")
+        current = current.__cause__ or current.__context__
+        depth += 1
+
+    # Where in our code it failed (innermost frame in this project)
+    frames = [f for f in traceback.extract_tb(exc.__traceback__)
+              if "site-packages" not in f.filename]
+    if frames:
+        f = frames[-1]
+        short = f.filename.split("bluesky-snowbot/")[-1]
+        lines.append(f"At: {short}:{f.lineno} in {f.name}()")
+    if suppressed:
+        lines.append(f"\n(+{suppressed} more like this since the last alert)")
+    return "\n".join(lines)
 
 
 def _uri_to_url(uri: Optional[str], handle: Optional[str]) -> Optional[str]:

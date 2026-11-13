@@ -64,6 +64,9 @@ class Settings:
     # Server identification (shown in latency footer)
     server_type: str  # "laptop" | "Pi"
 
+    # Optional Bluesky handle that gets a DM with error details when a request fails
+    admin_handle: Optional[str] = None
+
     @classmethod
     def load(cls, env_file: str | Path = ".local.env") -> "Settings":
         _load_dotenv(env_file)
@@ -108,6 +111,7 @@ class Settings:
             dm_poll_active_window_sec=opt_float("DM_POLL_ACTIVE_WINDOW_SEC", 120.0),
             dm_session_ttl_minutes=opt_int("DM_SESSION_TTL_MINUTES", 30),
             server_type=opt("SERVER_TYPE", "laptop"),
+            admin_handle=(opt("ADMIN_HANDLE") or "").lstrip("@") or None,
         )
 
     def ensure_directories(self) -> None:
