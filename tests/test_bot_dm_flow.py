@@ -108,14 +108,14 @@ def test_home_state_opens_that_states_resorts(bot):
     _dm(bot, "set state CO")
     _dm(bot, "menu")
     _dm(bot, "1")
-    assert bot.dm.sent[-1].startswith("🎿 Colorado resorts")
+    assert "🎿 Colorado resorts" in bot.dm.sent[-1]
 
 
 def test_home_region_opens_that_regions_resorts(bot):
     _dm(bot, "set region Japan")
     _dm(bot, "menu")
     _dm(bot, "1")
-    assert bot.dm.sent[-1].startswith("🎿 Japan resorts")
+    assert "🎿 Japan resorts" in bot.dm.sent[-1]
 
 
 @pytest.mark.parametrize("text", [
@@ -124,7 +124,7 @@ def test_home_region_opens_that_regions_resorts(bot):
 def test_set_region_and_set_state_both_list_the_resorts(bot, text):
     _dm(bot, text)
     reply = bot.dm.sent[-1]
-    assert reply.startswith("Home region set to Colorado (CO).")
+    assert reply.startswith("📍 Home region set to Colorado (CO).")
     assert "🎿 Colorado resorts" in reply
     assert "Vail" in reply and "Park City" not in reply
     # The list is live: a number picks from it
@@ -230,12 +230,21 @@ def test_large_resort_list_is_one_dm(bot):
     assert len(bot.dm.sent[-1]) <= 1000
 
 
-def test_regions_menu_explains_default_region(bot):
+def test_regions_menu_without_home_explains_setting_one(bot):
     _dm(bot, "regions")
     reply = bot.dm.sent[-1]
     assert reply.startswith("🎿 Select a region")
-    assert "set region Colorado" in reply
-    assert "clear region" in reply
+    assert "Tip: save a home region" in reply and "set region Colorado" in reply
+    assert "clear region" not in reply
+
+
+def test_regions_menu_with_home_shows_it_and_how_to_clear(bot):
+    _dm(bot, "set region Utah")
+    _dm(bot, "regions")
+    reply = bot.dm.sent[-1]
+    assert "Your home region: Utah (UT)" in reply
+    assert "Clear it: clear region" in reply
+    assert "Tip: save a home region" not in reply
 
 
 @pytest.mark.parametrize("text, header", [
@@ -297,4 +306,61 @@ def test_midwest_is_its_own_region_and_minnesota_left_us_east(bot):
 
 def test_set_region_midwest(bot):
     _dm(bot, "set region Midwest")
-    assert bot.dm.sent[-1].startswith("Home region set to US Midwest.")
+    assert bot.dm.sent[-1].startswith("📍 Home region set to US Midwest.")
+
+
+def test_home_region_list_says_why_and_how_to_clear(bot):
+    _dm(bot, "set region Colorado")
+    assert "Clear it: clear region" in bot.dm.sent[-1]
+    _dm(bot, "menu")
+    _dm(bot, "1")
+    reply = bot.dm.sent[-1]
+    assert reply.startswith("📍 Showing your home region: Colorado (CO)")
+    assert "🎿 Colorado resorts" in reply
+    assert "This list is your home region." in reply
+    assert "Clear it: clear region" in reply
+
+
+def test_large_home_region_still_fits_one_message(bot):
+    _dm(bot, "set region US Rockies")
+    _dm(bot, "menu")
+    _dm(bot, "1")
+    reply = bot.dm.sent[-1]
+    assert reply.startswith("📍 Showing your home region: US Rockies")
+    assert "Clear it: clear region" in reply
+
+
+@pytest.mark.parametrize("steps", [["Colorado"], ["menu", "1", "1"]])
+def test_lists_not_from_a_setting_have_no_home_note(bot, steps):
+    for text in steps:
+        _dm(bot, text)
+    assert "🎿" in bot.dm.sent[-1]
+    assert "📍" not in bot.dm.sent[-1]
+    assert "clear region" not in bot.dm.sent[-1]
+
+
+@pytest.mark.parametrize("steps", [["Colorado"], ["menu", "1", "1"], ["regions", "2"]])
+def test_browsed_lists_without_home_suggest_setting_one(bot, steps):
+    for text in steps:
+        _dm(bot, text)
+    reply = bot.dm.sent[-1]
+    assert "🎿" in reply
+    assert "Tip: save a home region" in reply
+
+
+def test_browsing_another_region_with_home_set_has_no_tip(bot):
+    _dm(bot, "set region Utah")
+    _dm(bot, "Japan")
+    reply = bot.dm.sent[-1]
+    assert "🎿 Japan resorts" in reply
+    assert "Tip: save a home region" not in reply
+    assert "clear region" not in reply
+
+
+def test_back_to_home_list_keeps_clear_hint(bot):
+    _dm(bot, "set region Colorado")
+    _dm(bot, "1")          # Arapahoe Basin report
+    _dm(bot, "back")
+    reply = bot.dm.sent[-1]
+    assert "🎿 Colorado resorts" in reply
+    assert "Clear it: clear region" in reply

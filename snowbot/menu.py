@@ -238,31 +238,59 @@ def _classify_exact(t: str) -> str | None:
     return None
 
 
-def format_regions_menu(resorts_by_region: dict) -> list[str]:
-    """Returns one or more messages listing all regions, numbered for selection."""
+def format_regions_menu(resorts_by_region: dict, home: Optional[str] = None) -> list[str]:
+    """
+    Returns one or more messages listing all regions, numbered for selection.
+
+    home: display name of the user's saved home region, or None. With no home
+    region the footer explains how to set one; with one, how to clear it.
+    """
     lines = []
     for i, (region, resorts) in enumerate(resorts_by_region.items(), 1):
         count = len(resorts)
         lines.append(f"{i}. {region} ({count} resort{'s' if count != 1 else ''})")
-    footer = (
-        "\nReply with a number — or 'menu' for main menu.\n\n"
-        "Set a default so 'snow reports' opens your area:\n"
-        "  set region Colorado  (or CO, Japan, US Rockies…)\n"
-        "Clear it: clear region"
-    )
+    footer = "\nReply with a number — or 'menu' for main menu."
+    if home:
+        footer += f"\n\nYour home region: {home}\nClear it: clear region"
+    else:
+        footer += SET_HOME_REGION_TIP
     return _pack_lines("🎿 Select a region:\n\n", lines, footer=footer)
 
 
-def format_resorts_menu(region: str, resorts: list[dict]) -> list[str]:
+SET_HOME_REGION_TIP = (
+    "\n\nTip: save a home region and 'snow reports' opens your resorts "
+    "right away, no browsing:\n"
+    "  set region Colorado  (or CO, Japan, US Rockies…)"
+)
+
+HOME_REGION_CLEAR_HINT = (
+    "\n\nThis list is your home region.\n"
+    "Clear it: clear region  •  Change it: set region Utah"
+)
+
+
+def format_resorts_menu(region: str, resorts: list[dict], note: str = "",
+                        home_hint: bool = False, set_hint: bool = False) -> list[str]:
     """Messages listing resorts in a region, numbered for selection.
     Each resort line includes a SNOTEL quality icon: ❄ good  ≈ marginal  ○ none
+
+    note:      a line shown above the list (e.g. why this list is showing)
+    home_hint: add how to clear/change the home region below the list — use when
+               the list is shown because of the user's saved home region
+    set_hint:  add how to set a home region (and why) — use when none is set
     """
     header = f"🎿 {region} resorts:\n\n"
+    if note:
+        header = f"{note}\n\n{header}"
     lines = []
     for i, resort in enumerate(resorts, 1):
         icon = snotel_icon(resort.get("snotel_dist_mi"), resort.get("snotel"))
         lines.append(f"{i}. {resort['display']} {icon}")
     footer = "\nReply with a number — or 'back' for regions.\n❄ on-mtn SNOTEL  ≈ nearby  ○ model only"
+    if home_hint:
+        footer += HOME_REGION_CLEAR_HINT
+    elif set_hint:
+        footer += SET_HOME_REGION_TIP
     return _pack_lines(header, lines, footer=footer)
 
 

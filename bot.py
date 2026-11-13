@@ -207,8 +207,7 @@ class Snowbot:
             elif resorts:
                 if request.requester_did:
                     self._db.set_dm_session(request.requester_did, "resorts", state=area)
-                for _msg in format_resorts_menu(area_label(area), resorts):
-                    self._send_dm_reply(request, _msg)
+                self._send_resorts_menu(request, area)
                 self._db.update_request_status(db_id, "complete")
                 return
 
@@ -347,13 +346,11 @@ class Snowbot:
                 self._db.set_home_state(did, area)
                 self._db.set_dm_session(did, "resorts", state=area)
             # Confirm and show the area's resorts straight away
-            messages = format_resorts_menu(area_label(area), resorts)
-            note = (f"Home region set to {area_display(area)}. "
-                    f"'Snow reports' will start here.\n\n")
-            if len(note) + len(messages[0]) <= DM_MAX_CHARS:
-                messages[0] = note + messages[0]
-            else:
-                messages.insert(0, note.strip())
+            messages = format_resorts_menu(
+                area_label(area), resorts,
+                note=f"📍 Home region set to {area_display(area)}. 'Snow reports' will start here.",
+                home_hint=True,
+            )
             for _msg in messages:
                 self._send_dm_reply(request, _msg)
 
@@ -407,22 +404,20 @@ class Snowbot:
             if resorts:
                 if did:
                     self._db.set_dm_session(did, "resorts", state=home_area)
-                for _msg in format_resorts_menu(area_label(home_area), resorts):
+                for _msg in format_resorts_menu(
+                    area_label(home_area), resorts,
+                    note=f"📍 Showing your home region: {area_display(home_area)}",
+                    home_hint=True,
+                ):
                     self._send_dm_reply(request, _msg)
             else:
-                if did:
-                    self._db.set_dm_session(did, "regions")
-                for _msg in format_regions_menu(_RESORTS_BY_REGION):
-                    self._send_dm_reply(request, _msg)
+                self._send_regions_menu(request)
 
         elif branch == "back":
             self._handle_back(request)
 
         elif branch == "change_state":
-            if did:
-                self._db.set_dm_session(did, "regions")
-            for _msg in format_regions_menu(_RESORTS_BY_REGION):
-                self._send_dm_reply(request, _msg)
+            self._send_regions_menu(request)
 
         elif branch == "learn":
             if did:
@@ -450,6 +445,29 @@ class Snowbot:
         elif branch == "help":
             self._send_dm_reply(request, format_help())
 
+    def _home_area(self, did: Optional[str]) -> Optional[str]:
+        """The user's saved home region/state key, or None."""
+        prefs = self._db.get_user_prefs(did) if did else None
+        return prefs.get("home_state") if prefs else None
+
+    def _send_regions_menu(self, request: AlertRequest) -> None:
+        did = request.requester_did
+        if did:
+            self._db.set_dm_session(did, "regions")
+        home = self._home_area(did)
+        for _msg in format_regions_menu(_RESORTS_BY_REGION,
+                                        home=area_display(home) if home else None):
+            self._send_dm_reply(request, _msg)
+
+    def _send_resorts_menu(self, request: AlertRequest, area: str) -> None:
+        """A browsed resort list: tip to set a home region if none is set; the
+        clear hint if this list is the user's home region."""
+        home = self._home_area(request.requester_did)
+        for _msg in format_resorts_menu(area_label(area), area_resorts(area),
+                                        home_hint=bool(home) and home == area,
+                                        set_hint=not home):
+            self._send_dm_reply(request, _msg)
+
     def _handle_back(self, request: AlertRequest) -> None:
         """Navigate one level up based on current session context."""
         did = request.requester_did
@@ -464,18 +482,13 @@ class Snowbot:
         elif session["menu"] == "report":
             # Back from a report picked off a resort list → that resort list
             region = session.get("state", "")
-            resorts = area_resorts(region)
             if did:
                 self._db.set_dm_session(did, "resorts", state=region)
-            for _msg in format_resorts_menu(area_label(region), resorts):
-                self._send_dm_reply(request, _msg)
+            self._send_resorts_menu(request, region)
 
         elif session["menu"] == "resorts":
             # Back from resort list → states menu
-            if did:
-                self._db.set_dm_session(did, "regions")
-            for _msg in format_regions_menu(_RESORTS_BY_REGION):
-                self._send_dm_reply(request, _msg)
+            self._send_regions_menu(request)
 
         elif session["menu"] == "regions":
             # Back from states menu → main menu
@@ -504,11 +517,9 @@ class Snowbot:
                     f"Please reply with a number between 1 and {len(regions)}.")
                 return True
             region = regions[index - 1]
-            resorts = _RESORTS_BY_REGION[region]
             if did:
                 self._db.set_dm_session(did, "resorts", state=region)
-            for _msg in format_resorts_menu(region, resorts):
-                self._send_dm_reply(request, _msg)
+            self._send_resorts_menu(request, region)
             return True
 
         elif menu == "resorts":
