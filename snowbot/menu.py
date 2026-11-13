@@ -134,6 +134,25 @@ def resolve_area(text: str) -> Optional[str]:
     return REGION_ALIASES.get(t)
 
 
+def find_area_request(text: str) -> Optional[str]:
+    """
+    Area key if a whole DM names a state, country, or region ("Colorado",
+    "japan", "US Rockies resorts"), else None.
+
+    Two-letter codes count only when typed in capitals ("CO", "NZ"), so words
+    like "me", "it", "or", "at" are never mistaken for Maine, Italy, etc.
+    """
+    t = _normalize(text)
+    for suffix in (" ski resorts", " resorts", " skiing"):
+        if t.endswith(suffix):
+            t = t[: -len(suffix)]
+            break
+    if len(t) == 2:
+        stripped = text.strip()
+        return stripped if stripped in STATE_NAMES else None
+    return resolve_area(t)
+
+
 def area_resorts(key: Optional[str]) -> list[dict]:
     """Resorts in an area (region name or state code), sorted by name."""
     if not key:

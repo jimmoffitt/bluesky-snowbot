@@ -51,7 +51,7 @@ from snowbot.menu import (
     format_playlist_detail, format_playlist_menu, format_regions_menu,
     find_menu_keyword, format_resorts_menu, format_small_talk_reply, is_menu_trigger,
     is_small_talk,
-    area_display, area_label, area_resorts, resolve_area,
+    area_display, area_label, area_resorts, find_area_request, resolve_area,
 )
 from snowbot.snow.resolver import _RESORTS_BY_REGION
 from snowbot.snow.formatter import SnowFormatter
@@ -190,6 +190,20 @@ class Snowbot:
                     branch = find_menu_keyword(raw)
             if branch:
                 self._handle_menu_branch(request, branch)
+                self._db.update_request_status(db_id, "complete")
+                return
+
+            # A state, country, or region name ("Colorado") → that area's resort list
+            area = None if resort_selected else find_area_request(raw)
+            resorts = area_resorts(area)
+            if len(resorts) == 1:
+                # One-resort area ("Andorra") — just give the report
+                request.raw_location = resorts[0]["display"]
+            elif resorts:
+                if request.requester_did:
+                    self._db.set_dm_session(request.requester_did, "resorts", state=area)
+                for _msg in format_resorts_menu(area_label(area), resorts):
+                    self._send_dm_reply(request, _msg)
                 self._db.update_request_status(db_id, "complete")
                 return
 

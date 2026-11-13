@@ -236,3 +236,39 @@ def test_regions_menu_explains_default_region(bot):
     assert reply.startswith("🎿 Select a region")
     assert "set region Colorado" in reply
     assert "clear region" in reply
+
+
+@pytest.mark.parametrize("text, header", [
+    ("Colorado",           "🎿 Colorado resorts"),
+    ("colorado",           "🎿 Colorado resorts"),
+    ("CO",                 "🎿 Colorado resorts"),
+    ("Utah resorts",       "🎿 Utah resorts"),
+    ("Japan",              "🎿 Japan resorts"),
+    ("us rockies",         "🎿 US Rockies resorts"),
+    ("British Columbia!",  "🎿 British Columbia resorts"),
+])
+def test_bare_area_name_lists_its_resorts(bot, text, header):
+    _dm(bot, text)
+    assert bot.lookups == []
+    assert bot.dm.sent[-1].startswith(header)
+    # Doesn't change the saved home region
+    _dm(bot, "settings")
+    assert "Home region: not set" in bot.dm.sent[-1]
+
+
+def test_bare_area_list_is_live(bot):
+    _dm(bot, "Colorado")
+    _dm(bot, "13")
+    assert bot.lookups == ["Vail"]
+
+
+@pytest.mark.parametrize("text", ["me", "it", "or", "At"])
+def test_lowercase_two_letter_words_are_not_areas(bot, text):
+    _dm(bot, text)
+    assert not any(m.startswith("🎿") for m in bot.dm.sent)
+
+
+def test_single_resort_area_goes_straight_to_report(bot):
+    _dm(bot, "Andorra")
+    assert len(bot.lookups) == 1
+    assert "Grandvalira" in bot.lookups[0]
