@@ -480,3 +480,11 @@ def test_us_rockies_list_is_grouped_by_state(bot):
     n = next(l.split()[0] for l in lines if "Snowbird" in l)
     _dm(bot, n)
     assert bot.snow_lookups_resolved[-1] == ("Snowbird", "UT")
+
+
+def test_photo_option_explains_it_posts_publicly(bot):
+    _dm(bot, "menu")
+    assert "3. Post a snow photo" in bot.reply
+    assert "post one publicly and tag you" in bot.reply
+    _dm(bot, "help")
+    assert "post a snow photo publicly and tag you" in bot.reply

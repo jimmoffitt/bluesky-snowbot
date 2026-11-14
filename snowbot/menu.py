@@ -4,7 +4,7 @@ Menu system — formats the main menu and sub-menu responses for DM interactions
 Main menu options:
   1. Snow reports
   2. Learn about snow
-  3. See snow photos
+  3. Post a snow photo (public post that tags the user)
   4. Music playlists
   5. Help / About
 
@@ -388,7 +388,8 @@ def format_main_menu() -> str:
         "Hi! I'm Snowbot ❄️ What would you like?\n\n"
         "1. Snow reports\n"
         "2. Learn about snow\n"
-        "3. See snow photos\n"  # posts publicly with @mention
+        "3. Post a snow photo\n"
+        "    (Bluesky DMs can't carry images, so I'll post one publicly and tag you)\n"
         "4. Weather & mountain playlists\n"
         "5. Help / About\n\n"
         "Reply with a number or keyword — or just type a resort name for instant conditions."
@@ -448,7 +449,8 @@ def format_help() -> str:
         "Other commands:\n"
         "  menu — show main menu\n"
         "  learn — snow science links\n"
-        "  photos — post a snow photo for you\n"
+        "  photos — I post a snow photo publicly and tag you\n"
+        "     (Bluesky DMs can't carry images)\n"
         "  music — weather & mountain playlists\n"
         "  regions — browse all regions\n"
         "  map Vail — the resort's trail map\n"
