@@ -115,10 +115,43 @@ class SnowService:
         )
         return report
 
+    def refresh_all(self, locations: list[ResortLocation], ttl_minutes: int,
+                    batch_size: int = 25) -> tuple[int, int]:
+        """
+        Fetch fresh reports for many resorts and store them in the cache, a
+        batch of locations per Open-Meteo request. A failed batch is logged and
+        skipped (the next refresh tries again). Returns (ok, failed) counts.
+        """
+        ok = failed = 0
+        for i in range(0, len(locations), batch_size):
+            batch = locations[i:i + batch_size]
+            try:
+                raws = self._openmeteo.fetch_many([(l.lat, l.lon) for l in batch])
+            except Exception as exc:
+                logger.warning("[refresh] Open-Meteo batch of %d failed: %s", len(batch), exc)
+                failed += len(batch)
+                continue
+            for location, raw in zip(batch, raws):
+                try:
+                    report = self._report_from_raw(location, raw)
+                    self._db.save_cached_snow(
+                        lat=location.lat, lon=location.lon, display_name=location.name,
+                        report_json=_serialize_report(report), ttl_minutes=ttl_minutes,
+                    )
+                    ok += 1
+                except Exception as exc:
+                    logger.warning("[refresh] %s failed: %s", location.name, exc)
+                    failed += 1
+        return ok, failed
+
     def _build_report(self, location: ResortLocation) -> SnowReport:
         # Always fetch Open-Meteo for weather conditions
         logger.info("[service] Fetching Open-Meteo data for %s", location.name)
         raw = self._openmeteo.fetch(location.lat, location.lon)
+        return self._report_from_raw(location, raw)
+
+    def _report_from_raw(self, location: ResortLocation, raw: dict) -> SnowReport:
+        """Build a SnowReport from an Open-Meteo response (+ SnoCountry/SNOTEL)."""
         snow, conditions = _parse_open_meteo(raw, location)
 
         # Attempt SnoCountry if configured.

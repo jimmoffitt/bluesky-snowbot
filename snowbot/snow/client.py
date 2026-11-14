@@ -99,6 +99,30 @@ class SnowClient:
         logger.debug("[client] Fetched Open-Meteo data for (%.4f, %.4f)", lat, lon)
         return data
 
+    def fetch_many(self, coords: list[tuple[float, float]], past_days: int = 3,
+                   timeout: tuple[float, float] = (6, 45)) -> list[dict]:
+        """
+        Fetch the same data as fetch() for several locations in one request.
+        Returns one response dict per coordinate, in order. Used by the
+        background refresh, which can afford a longer timeout than a user.
+        """
+        params = {
+            "latitude":       ",".join(f"{lat:.4f}" for lat, _ in coords),
+            "longitude":      ",".join(f"{lon:.4f}" for _, lon in coords),
+            "hourly":         ",".join(HOURLY_VARS),
+            "daily":          ",".join(DAILY_VARS),
+            "past_days":      past_days,
+            "forecast_days":  8,
+            "timezone":       "auto",
+        }
+        resp = self._session.get(BASE_URL, params=params, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        results = data if isinstance(data, list) else [data]
+        if len(results) != len(coords):
+            raise ValueError(f"Open-Meteo returned {len(results)} results for {len(coords)} locations")
+        return results
+
     @staticmethod
     def extract_current_index(data: dict) -> int:
         """

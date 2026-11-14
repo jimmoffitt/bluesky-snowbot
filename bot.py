@@ -88,6 +88,8 @@ class Snowbot:
         self._notify_channels: dict[str, NotificationChannel] = {}
         self._running = False
         self._lock    = threading.Lock()
+        self._refresh_stop = threading.Event()
+        self._refresh_thread: Optional[threading.Thread] = None
         # Last resort each DM user got a report for, so a bare "map" knows what they mean
         self._last_resort: dict[str, tuple[str, str]] = {}
         # Admin alert throttle: error key → (monotonic time last sent, count suppressed since)
@@ -117,6 +119,11 @@ class Snowbot:
         self._running = True
         for ch in self._alert_channels:
             ch.start()
+        if self._settings.snow_refresh_minutes > 0:
+            self._refresh_stop.clear()
+            self._refresh_thread = threading.Thread(
+                target=self._refresh_loop, name="SnowRefresh", daemon=True)
+            self._refresh_thread.start()
         logger.info("Snowbot running. %d alert channel(s), %d notify channel(s).",
                     len(self._alert_channels), len(self._notify_channels))
         if block:
@@ -127,6 +134,7 @@ class Snowbot:
             return
         self._running = False
         logger.info("Snowbot shutting down...")
+        self._refresh_stop.set()
         for ch in self._alert_channels:
             try:
                 ch.stop()
@@ -134,6 +142,39 @@ class Snowbot:
                 logger.warning("Error stopping %s: %s", ch, exc)
         self._db.close()
         logger.info("Snowbot stopped.")
+
+    # ------------------------------------------------------------------
+    # Background refresh
+    # ------------------------------------------------------------------
+
+    def _refresh_loop(self) -> None:
+        """
+        Keep every resort's report in the cache so user requests don't wait on
+        (or fail with) a live Open-Meteo call. Runs on its own DB connection.
+        A refresh with failures is retried after 5 minutes instead of waiting
+        the full interval.
+        """
+        from snowbot.snow.resolver import _RESORTS, _entry_to_location
+        locations = [_entry_to_location(e) for e in _RESORTS]
+        interval = self._settings.snow_refresh_minutes * 60
+        ttl = self._settings.snow_refresh_minutes + 30     # stays fresh until the next refresh lands
+        try:
+            with Database(path=self._settings.db_path) as db:
+                svc = SnowService(db, cache_ttl_minutes=self._settings.snow_cache_ttl_minutes,
+                                  snocountry_key=self._settings.snocountry_key,
+                                  snocountry_mock=self._settings.snocountry_mock)
+                while not self._refresh_stop.is_set():
+                    started = time.monotonic()
+                    try:
+                        ok, failed = svc.refresh_all(locations, ttl_minutes=ttl)
+                    except Exception as exc:
+                        logger.exception("[refresh] Refresh crashed: %s", exc)
+                        ok, failed = 0, len(locations)
+                    logger.info("[refresh] %d/%d resorts refreshed in %.1fs (%d failed)",
+                                ok, len(locations), time.monotonic() - started, failed)
+                    self._refresh_stop.wait(interval if failed == 0 else min(interval, 300))
+        except Exception as exc:
+            logger.exception("[refresh] Refresh thread stopped: %s", exc)
 
     # ------------------------------------------------------------------
     # Request handler

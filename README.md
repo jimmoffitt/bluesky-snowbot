@@ -61,7 +61,7 @@ Resort lists mark the data quality for each resort:
 - `≈` a station nearby
 - `○` model data only (Open-Meteo)
 
-The resort table (names, aliases, coordinates, elevation, nearest SNOTEL station) is hand-curated in `snowbot/snow/resolver.py`. A name not in the table falls back to geocoding through OpenStreetMap Nominatim, so the bot can still answer for a smaller hill. Reports are cached for 30 minutes.
+The resort table (names, aliases, coordinates, elevation, nearest SNOTEL station) is hand-curated in `snowbot/snow/resolver.py`. A name not in the table falls back to geocoding through OpenStreetMap Nominatim, so the bot can still answer for a smaller hill. A background job refreshes every resort in the list once an hour (a few batched Open-Meteo requests), so most replies come straight from the cache instead of waiting on a live call. Other places are looked up live and cached for 30 minutes.
 
 > The code also includes an optional [SnoCountry](https://www.snocountry.com/) client for resort-reported conditions (lifts open, base depth). It isn't enabled in the running bot.
 
@@ -119,7 +119,9 @@ Useful settings in `.local.env`:
 | `DB_PATH` | `data/snowbot.db` | SQLite database |
 | `PHOTOS_PATH` | `snowbot/data/photos` | Photo files. They aren't in git; captions are in `snowbot/data/photos.csv`. |
 | `SERVER_TYPE` | `laptop` | Shown in the response-time footer |
-| `SNOW_CACHE_TTL_MINUTES` | `30` | How long a report is reused |
+| `SNOW_CACHE_TTL_MINUTES` | `30` | How long a live lookup is reused |
+| `SNOW_REFRESH_MINUTES` | `60` | How often every resort is refreshed in the background (0 turns it off) |
+| `ADMIN_HANDLE` | unset | Bluesky handle that gets a DM with error details when a request fails |
 | `DM_POLL_INTERVAL_SEC` | `5` | DM polling interval when idle |
 | `LOG_LEVEL` | `INFO` | |
 

@@ -64,6 +64,9 @@ class Settings:
     # Server identification (shown in latency footer)
     server_type: str  # "laptop" | "Pi"
 
+    # Background refresh of every resort's report (minutes; 0 turns it off)
+    snow_refresh_minutes: int = 60
+
     # Optional Bluesky handle that gets a DM with error details when a request fails
     admin_handle: Optional[str] = None
 
@@ -112,6 +115,7 @@ class Settings:
             dm_session_ttl_minutes=opt_int("DM_SESSION_TTL_MINUTES", 30),
             server_type=opt("SERVER_TYPE", "laptop"),
             admin_handle=(opt("ADMIN_HANDLE") or "").lstrip("@") or None,
+            snow_refresh_minutes=opt_int("SNOW_REFRESH_MINUTES", 60),
         )
 
     def ensure_directories(self) -> None:

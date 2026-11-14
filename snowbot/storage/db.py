@@ -341,11 +341,14 @@ class Database:
     # ------------------------------------------------------------------
 
     def get_cached_snow(self, lat: float, lon: float) -> Optional[dict]:
-        key = _cache_key(lat, lon)
+        """Newest unexpired report for this spot (rows are saved per clock hour,
+        but any unexpired one is good — the background refresh relies on this)."""
         assert self._conn
         row = self._conn.execute(
-            "SELECT report_json FROM snow_cache WHERE cache_key = ? AND expires_at > ?",
-            (key, _now()),
+            """SELECT report_json FROM snow_cache
+               WHERE lat = ? AND lon = ? AND expires_at > ?
+               ORDER BY fetched_at DESC LIMIT 1""",
+            (round(lat, 3), round(lon, 3), _now()),
         ).fetchone()
         return json.loads(row["report_json"]) if row else None
 
