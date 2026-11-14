@@ -38,6 +38,7 @@ from snowbot.channels.alert.dm_poller import DMAlertChannel, _extract_location  
 from snowbot.channels.notify.base import NotificationResult              # noqa: E402
 from snowbot.channels.notify.bluesky_dm import BlueskyDMNotifyChannel    # noqa: E402
 from snowbot.config.settings import Settings                             # noqa: E402
+from snowbot.menu import area_resorts                                     # noqa: E402
 from snowbot.snow.resolver import _RESORTS_BY_REGION                     # noqa: E402
 from snowbot.snow.service import _deserialize_report                     # noqa: E402
 
@@ -88,7 +89,7 @@ def run_conversation(report_json: Path, resort: str = "Breckenridge",
     bot.register_notify_channel(dm)
 
     regions = list(_RESORTS_BY_REGION)
-    resorts = [r["display"] for r in _RESORTS_BY_REGION[region]]
+    resorts = [r["display"] for r in area_resorts(region)]   # same order as the list shown
     steps = ["menu", "1", str(regions.index(region) + 1), str(resorts.index(resort) + 1)]
 
     transcript: list[tuple[str, str]] = []

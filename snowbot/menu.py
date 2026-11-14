@@ -100,7 +100,7 @@ STATE_NAMES: dict[str, str] = {
 
 # Regions whose resort lists are grouped under state labels, states in
 # alphabetical order and resorts alphabetical within each state
-GROUPED_REGIONS = {"US Midwest"}
+GROUPED_REGIONS = {"US Midwest", "US Rockies"}
 
 # Informal names for the regions in REGION_GROUPS
 REGION_ALIASES: dict[str, str] = {
@@ -335,11 +335,13 @@ def format_resorts_menu(region: str, resorts: list[dict], note: str = "",
             lines.append(f"    {num} {resort['display']} {icon}")
         else:
             lines.append(f"{num}. {resort['display']} {icon}")
-    footer = "\nReply with a number — or 'back' for regions." + SNOW_DATA_LEGEND
+    # Footer blocks are kept whole; any that don't fit after the list move to
+    # a follow-up message, so the list itself is never split to make room
+    footer = ["\nReply with a number — or 'back' for regions.", SNOW_DATA_LEGEND]
     if home_hint:
-        footer += HOME_REGION_CLEAR_HINT
+        footer.append(HOME_REGION_CLEAR_HINT)
     elif set_hint:
-        footer += SET_HOME_REGION_TIP
+        footer.append(SET_HOME_REGION_TIP)
     return _pack_lines(header, lines, footer=footer)
 
 
@@ -423,20 +425,35 @@ def format_help() -> str:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _pack_lines(header: str, lines: list[str], footer: str = "") -> list[str]:
-    """Pack lines into DMs of ≤DM_MAX_CHARS, with header on first message."""
-    messages = []
+def _pack_lines(header: str, lines: list[str], footer: "str | list[str]" = "") -> list[str]:
+    """
+    Pack lines into DMs of ≤DM_MAX_CHARS, with header on the first message.
+
+    Lines fill messages first. The footer (a string, or a list of blocks) is
+    then appended block by block to the last message; a block that doesn't fit
+    starts a new message instead of forcing the list to split early.
+    """
+    messages: list[str] = []
     current = header
     for line in lines:
         candidate = current + line + "\n"
-        if len(candidate) + len(footer) > DM_MAX_CHARS and current != header:
+        if len(candidate) > DM_MAX_CHARS and current != header:
             messages.append(current.rstrip())
             current = line + "\n"
         else:
             current = candidate
+    current = current.rstrip()
+
+    blocks = [footer] if isinstance(footer, str) else list(footer)
+    for block in blocks:
+        if not block:
+            continue
+        if len(current) + len(block) <= DM_MAX_CHARS:
+            current += block
+        else:
+            if current:
+                messages.append(current)
+            current = block.lstrip("\n")
     if current.strip():
-        current = current.rstrip()
-        if footer and len(current) + len(footer) <= DM_MAX_CHARS:
-            current += footer
         messages.append(current)
     return messages

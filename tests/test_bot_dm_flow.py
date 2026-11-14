@@ -52,21 +52,26 @@ def _dm(bot, text, n=[0]):
     from snowbot.channels.alert.dm_poller import DMAlertChannel, _extract_location
     n[0] += 1
     cmd = DMAlertChannel._extract_command(text)
+    before = len(bot.dm.sent)
     bot._handle_request(AlertRequest(
         source_channel="dm", requester_handle="tester.bsky.social", requester_did="did:plc:tester",
         raw_location=None if cmd else _extract_location(text), raw_content=text,
         reply_to_uri=f"convo-{n[0]}", command=cmd,
     ))
+    # Everything the bot sent back for this DM (a long list can be 2 messages)
+    bot.replies = bot.dm.sent[before:]
+    bot.reply = "\n\n".join(bot.replies)
 
 
 def test_resort_number_that_matches_main_menu_number_looks_up_resort(bot):
-    from snowbot.snow.resolver import _RESORTS_BY_REGION
+    from snowbot.menu import area_resorts
+    from snowbot.snow.resolver import _RESORTS_BY_REGION, resort_query
     _dm(bot, "menu")
     _dm(bot, "1")   # regions
     _dm(bot, "1")   # first region's resorts
     _dm(bot, "3")   # third resort — must not trigger the "photos" branch
-    first_region = next(iter(_RESORTS_BY_REGION.values()))
-    assert bot.lookups == [first_region[2]["display"]]
+    first_region = next(iter(_RESORTS_BY_REGION))
+    assert bot.lookups == [resort_query(area_resorts(first_region)[2])]
     assert bot.post.photos == []
 
 
@@ -151,7 +156,7 @@ def test_set_region_and_set_state_both_list_the_resorts(bot, text):
 ])
 def test_set_region_accepts_names_and_regions(bot, text, header, setting):
     _dm(bot, text)
-    assert header in bot.dm.sent[-1]
+    assert header in bot.reply
     _dm(bot, "settings")
     assert setting in bot.dm.sent[-1]
 
@@ -233,11 +238,16 @@ def test_menus_arrive_as_one_dm(bot, text):
     assert len(bot.dm.sent) == 1
 
 
-def test_large_resort_list_is_one_dm(bot):
+def test_large_resort_list_stays_whole_in_first_dm(bot):
     for text in ("menu", "1", "1"):   # US Rockies, the longest resort list
         _dm(bot, text)
-    assert bot.dm.sent[-1].startswith("🎿 US Rockies resorts")
-    assert len(bot.dm.sent[-1]) <= 1000
+    first = bot.replies[0]
+    assert first.startswith("🎿 US Rockies resorts")
+    assert len(first) <= 1000
+    # The whole numbered list and legend are in message 1; only the tip spills over
+    assert "29 Jackson Hole Mountain Resort" in first and "📊 Snow data:" in first
+    assert all(len(m) <= 1000 for m in bot.replies)
+    assert bot.replies[-1].startswith("Tip: save a home region")
 
 
 def test_regions_menu_without_home_explains_setting_one(bot):
@@ -269,7 +279,7 @@ def test_regions_menu_with_home_shows_it_and_how_to_clear(bot):
 def test_bare_area_name_lists_its_resorts(bot, text, header):
     _dm(bot, text)
     assert bot.lookups == []
-    assert bot.dm.sent[-1].startswith(header)
+    assert bot.reply.startswith(header)
     # Doesn't change the saved home region
     _dm(bot, "settings")
     assert "Home region: not set" in bot.dm.sent[-1]
@@ -331,29 +341,29 @@ def test_home_region_list_says_why_and_how_to_clear(bot):
     assert "Clear it: clear region" in reply
 
 
-def test_large_home_region_still_fits_one_message(bot):
+def test_large_home_region_keeps_list_whole(bot):
     _dm(bot, "set region US Rockies")
     _dm(bot, "menu")
     _dm(bot, "1")
-    reply = bot.dm.sent[-1]
-    assert reply.startswith("📍 Showing your home region: US Rockies")
-    assert "Clear it: clear region" in reply
+    assert bot.replies[0].startswith("📍 Showing your home region: US Rockies")
+    assert "29 Jackson Hole Mountain Resort" in bot.replies[0]
+    assert "Clear it: clear region" in bot.reply
 
 
 @pytest.mark.parametrize("steps", [["Colorado"], ["menu", "1", "1"]])
 def test_lists_not_from_a_setting_have_no_home_note(bot, steps):
     for text in steps:
         _dm(bot, text)
-    assert "🎿" in bot.dm.sent[-1]
-    assert "📍" not in bot.dm.sent[-1]
-    assert "clear region" not in bot.dm.sent[-1]
+    assert "🎿" in bot.reply
+    assert "📍" not in bot.reply
+    assert "clear region" not in bot.reply
 
 
 @pytest.mark.parametrize("steps", [["Colorado"], ["menu", "1", "1"], ["regions", "2"]])
 def test_browsed_lists_without_home_suggest_setting_one(bot, steps):
     for text in steps:
         _dm(bot, text)
-    reply = bot.dm.sent[-1]
+    reply = bot.reply
     assert "🎿" in reply
     assert "Tip: save a home region" in reply
 
@@ -458,3 +468,15 @@ def test_mt_la_crosse_in_wisconsin_group(bot):
     lines = bot.dm.sent[-1].splitlines()
     wi = lines[lines.index("Wisconsin") + 1:]
     assert any("Mt. La Crosse" in l for l in wi[:8])
+
+
+def test_us_rockies_list_is_grouped_by_state(bot):
+    _dm(bot, "US Rockies")
+    lines = bot.replies[0].splitlines()
+    states = ["Colorado", "Idaho", "Montana", "New Mexico", "Utah", "Wyoming"]
+    assert [l for l in lines if l in states] == states
+    assert lines[lines.index("Colorado") + 1].endswith("1 Arapahoe Basin ❄")
+    # Picking a number gets the resort shown next to it
+    n = next(l.split()[0] for l in lines if "Snowbird" in l)
+    _dm(bot, n)
+    assert bot.snow_lookups_resolved[-1] == ("Snowbird", "UT")
