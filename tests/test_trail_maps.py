@@ -46,13 +46,13 @@ def test_map_named_resort(make_bot):
 def test_map_resort_without_direct_link_gives_website(make_bot):
     b = make_bot()
     reply = _dm(b, "trail map Giants Ridge")
-    assert "don't have a direct trail-map link for Giants Ridge" in reply
+    assert "🗺️ Giants Ridge\nNo trail-map link yet." in reply
     assert "https://" in reply
 
 
 def test_map_unknown_resort(make_bot):
     b = make_bot()
-    assert "couldn't find a resort called 'Narnia Peak'" in _dm(b, "map Narnia Peak")
+    assert "couldn't find 'Narnia Peak'" in _dm(b, "map Narnia Peak")
 
 
 def test_bare_map_without_context_asks_which(make_bot):

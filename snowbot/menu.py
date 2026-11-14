@@ -228,9 +228,10 @@ def format_trail_map(tm, name: str) -> str:
     if tm and tm.url:
         return f"🗺️ {name} trail map:\n{tm.url}"
     if tm and tm.site:
-        return (f"🗺️ I don't have a direct trail-map link for {name} yet — "
-                f"it's usually on the resort's website:\n{tm.site}")
-    return f"Sorry, I don't have a trail map for {name} yet."
+        return (f"🗺️ {name}\n"
+                f"No trail-map link yet.\n"
+                f"Try the resort's website:\n{tm.site}")
+    return f"Sorry, no trail map for {name} yet."
 
 
 def trail_map_line(tm) -> str:
@@ -251,7 +252,7 @@ def is_small_talk(text: str) -> bool:
 
 
 def format_small_talk_reply() -> str:
-    return "❄️ Send a resort name for snow conditions (e.g. Vail), or 'menu' for options."
+    return "❄️ Send a resort name, like Vail.\nOr send 'menu' for options."
 
 
 def classify_menu_input(text: str) -> str | None:
@@ -306,9 +307,9 @@ def format_regions_menu(resorts_by_region: dict, home: Optional[str] = None) -> 
     for i, (region, resorts) in enumerate(resorts_by_region.items(), 1):
         count = len(resorts)
         lines.append(f"{i}. {region} ({count} resort{'s' if count != 1 else ''})")
-    footer = "\nReply with a number — or 'menu' for main menu."
+    footer = "\nReply with a number,\nor 'menu' for the main menu."
     if home:
-        footer += f"\n\nYour home region: {home}\nClear it: clear region"
+        footer += f"\n\n📍 Your home region:\n{home}\nClear: clear region"
     else:
         footer += SET_HOME_REGION_TIP
     return _pack_lines("🎿 Select a region:\n\n", lines, footer=footer)
@@ -317,9 +318,9 @@ def format_regions_menu(resorts_by_region: dict, home: Optional[str] = None) -> 
 # Shown under every resort list; each icon also appears next to each resort
 SNOW_DATA_LEGEND = (
     "\n\n📊 Snow data:\n"
-    "  ❄  SNOTEL station on the mountain\n"
-    "  ≈  SNOTEL station nearby\n"
-    "  ○  Weather model only"
+    "❄ SNOTEL station on the mountain\n"
+    "≈ SNOTEL station nearby\n"
+    "○ Weather model only"
 )
 
 # FIGURE SPACE: as wide as a digit in most fonts, so padded numbers line up
@@ -332,14 +333,16 @@ def _pad_number(n: int, width: int) -> str:
 
 
 SET_HOME_REGION_TIP = (
-    "\n\nTip: save a home region and 'snow reports' opens your resorts "
-    "right away, no browsing:\n"
-    "  set region Colorado  (or CO, Japan, US Rockies…)"
+    "\n\n💡 Save a home region and\n"
+    "'snow reports' opens it directly:\n"
+    "set region Colorado\n"
+    "(or CO, Japan, US Rockies…)"
 )
 
 HOME_REGION_CLEAR_HINT = (
-    "\n\nThis list is your home region.\n"
-    "Clear it: clear region  •  Change it: set region Utah"
+    "\n\nThis is your home region.\n"
+    "Change: set region Utah\n"
+    "Clear: clear region"
 )
 
 
@@ -375,7 +378,7 @@ def format_resorts_menu(region: str, resorts: list[dict], note: str = "",
             lines.append(f"{num}. {resort['display']} {icon}")
     # Footer blocks are kept whole; any that don't fit after the list move to
     # a follow-up message, so the list itself is never split to make room
-    footer = ["\nReply with a number — or 'back' for regions.", SNOW_DATA_LEGEND]
+    footer = ["\nReply with a number,\nor 'back' for regions.", SNOW_DATA_LEGEND]
     if home_hint:
         footer.append(HOME_REGION_CLEAR_HINT)
     elif set_hint:
@@ -385,14 +388,17 @@ def format_resorts_menu(region: str, resorts: list[dict], note: str = "",
 
 def format_main_menu() -> str:
     return (
-        "Hi! I'm Snowbot ❄️ What would you like?\n\n"
+        "Hi! I'm Snowbot ❄️\n"
+        "What would you like?\n\n"
         "1. Snow reports\n"
         "2. Learn about snow\n"
-        "3. Post a snow photo\n"
-        "    (Bluesky DMs can't carry images, so I'll post one publicly and tag you)\n"
-        "4. Weather & mountain playlists\n"
+        "3. Post a snow photo 📸\n"
+        "Posted publicly and tags you,\n"
+        "since DMs can't carry images.\n"
+        "4. Mountain playlists\n"
         "5. Help / About\n\n"
-        "Reply with a number or keyword — or just type a resort name for instant conditions."
+        "Reply with a number,\n"
+        "or send a resort name."
     )
 
 
@@ -404,15 +410,16 @@ def format_learn_menu(lib: ContentLibrary) -> list[str]:
 
     lines = []
     for i, link in enumerate(links, 1):
-        lines.append(f"{i}. {link.short_name} — {link.full_name}\n   {link.url}")
-    return _pack_lines("❄️ Learn about snow:\n\n", lines, footer="\nReply with a number for more details.")
+        lines.append(f"{i}. {link.short_name}\n{link.full_name}\n")
+    return _pack_lines("❄️ Learn about snow:\n\n", lines,
+                       footer="\nReply with a number\nfor the link and details.")
 
 
 def format_link_detail(lib: ContentLibrary, index: int) -> str:
     """Return name + URL + description for the nth link (1-based)."""
     links = lib.all_links()
     if not 1 <= index <= len(links):
-        return f"Please reply with a number between 1 and {len(links)}."
+        return f"Please reply with 1–{len(links)}."
     link = links[index - 1]
     return f"{link.full_name}\n{link.url}\n\n{link.description}"
 
@@ -424,15 +431,16 @@ def format_playlist_menu(lib: ContentLibrary) -> list[str]:
         return ["No playlists available right now."]
     lines = []
     for i, pl in enumerate(playlists, 1):
-        lines.append(f"{i}. {pl.name} — {pl.description}\n   {pl.url}")
-    return _pack_lines("🎵 Music playlists:\n\n", lines, footer="\nReply with a number for details.")
+        lines.append(f"{i}. {pl.name}\n{pl.description}\n")
+    return _pack_lines("🎵 Music playlists:\n\n", lines,
+                       footer="\nReply with a number\nfor the link.")
 
 
 def format_playlist_detail(lib: ContentLibrary, index: int) -> str:
     """Return name + URL for the nth playlist (1-based)."""
     playlists = lib.all_playlists()
     if not 1 <= index <= len(playlists):
-        return f"Please reply with a number between 1 and {len(playlists)}."
+        return f"Please reply with 1–{len(playlists)}."
     pl = playlists[index - 1]
     return f"🎵 {pl.name}\n{pl.description}\n\n{pl.url}"
 
@@ -441,24 +449,43 @@ def format_photo_caption(photo) -> str:
     return f"📸 {photo.caption}" if photo else "No photos available right now."
 
 
+def format_settings(home: Optional[str], region: Optional[str]) -> str:
+    """
+    The user's saved settings, laid out for a narrow phone screen: each value
+    on its own line under its label, with the command to change or clear it.
+    """
+    lines = ["⚙️ Your settings", "", "🏔️ Home resort"]
+    if home:
+        lines += [home, "• change: set home Vail", "• clear: clear home"]
+    else:
+        lines += ["Not set", "• set it: set home Vail"]
+    lines += ["", "📍 Home region"]
+    if region:
+        lines += [region, "• change: set region Utah", "• clear: clear region"]
+    else:
+        lines += ["Not set", "• set it: set region Colorado", "  ('snow reports' then opens it)"]
+    if home or region:
+        lines += ["", "Clear everything: reset"]
+    return "\n".join(lines)
+
+
 def format_help() -> str:
     return (
         "Snowbot ❄️\n\n"
-        "Send a resort name for snow conditions:\n"
-        "  Vail  •  Park City  •  Mammoth\n\n"
-        "Other commands:\n"
-        "  menu — show main menu\n"
-        "  learn — snow science links\n"
-        "  photos — I post a snow photo publicly and tag you\n"
-        "     (Bluesky DMs can't carry images)\n"
-        "  music — weather & mountain playlists\n"
-        "  regions — browse all regions\n"
-        "  map Vail — the resort's trail map\n"
-        "  set home Vail — save home resort\n"
-        "  set region Colorado — save home region\n"
-        "     (or CO, Japan, US Rockies…)\n"
-        "  settings — view preferences\n"
-        "  reset — clear preferences"
+        "Send a resort name for a report:\n"
+        "Vail, Park City, Mammoth…\n\n"
+        "Commands:\n"
+        "menu – main menu\n"
+        "regions – browse by region\n"
+        "map Vail – trail map\n"
+        "learn – snow science links\n"
+        "music – mountain playlists\n"
+        "photos – a public photo post\n"
+        "  that tags you\n"
+        "set home Vail – home resort\n"
+        "set region CO – home region\n"
+        "settings – your settings\n"
+        "reset – clear your settings"
     )
 
 

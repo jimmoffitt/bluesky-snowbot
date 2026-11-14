@@ -155,7 +155,7 @@ def test_stale_report_is_labeled_and_admin_alerted(make_bot, sample_snow_report)
     b = make_bot(lookup=lambda raw: sample_snow_report)
     _send(b, "Vail")
     user_dm = b.dm.payloads[0].post_thread
-    assert user_dm[0].startswith("⚠️ Live snow data isn't reachable right now")
+    assert user_dm[0].startswith("⚠️ Live data is unavailable.")
     assert "3 hr 10 min ago" in user_dm[0]
     assert any("Vail" in p for p in user_dm[1:])            # the report itself follows
     alerts = _admin_dms(b)

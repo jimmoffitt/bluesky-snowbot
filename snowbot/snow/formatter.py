@@ -150,7 +150,7 @@ class SnowFormatter:
     def _post3_forecast(self, report: SnowReport) -> str:
         """Compact 7-day forecast strip: day emoji snow hi/lo°F."""
         from datetime import datetime
-        lines = [f"📅 {report.location.name} 7-Day Forecast\n"]
+        lines = ["📅 7-day forecast\n"]
         for day in report.forecast:
             dt = datetime.fromisoformat(day.date)
             dow = dt.strftime("%a")          # Mon, Tue…
@@ -202,12 +202,14 @@ class SnowFormatter:
         if sn and sn.snow_depth_in is not None:
             depth_in = sn.snow_depth_in
             depth_cm = sn.snow_depth_cm or depth_in * 2.54
+            # Value on one line, its source on the next, so neither wraps
             if quality == "good":
-                depth_str = f'{depth_in:.0f}" / {depth_cm:.0f} cm ❄ {sn.station_name}'
+                depth_str = f'{depth_in:.0f}" / {depth_cm:.0f} cm\n   ❄ {sn.station_name} station'
             else:
-                depth_str = f'{depth_in:.0f}" / {depth_cm:.0f} cm ≈ {sn.station_name} ({loc.snotel_dist_mi:.0f}mi)'
+                depth_str = (f'{depth_in:.0f}" / {depth_cm:.0f} cm\n'
+                             f'   ≈ {sn.station_name}, {loc.snotel_dist_mi:.0f} mi')
         else:
-            depth_str = f'{_cm_to_in(snow.depth_cm):.0f}" / {snow.depth_cm:.0f} cm ○ model est.'
+            depth_str = f'{_cm_to_in(snow.depth_cm):.0f}" / {snow.depth_cm:.0f} cm\n   ○ model estimate'
 
         # SWE — only when SNOTEL has it
         swe_str = ""
@@ -263,7 +265,7 @@ def _elev_str(elevation_m) -> str:
     if elevation_m is None:
         return ""
     elev_ft = int(elevation_m * 3.281)
-    return f"  ({elev_ft:,} ft / {int(elevation_m):,} m)"
+    return f"\n📏 {elev_ft:,} ft / {int(elevation_m):,} m"
 
 def _truncate(text: str, limit: int = BLUESKY_LIMIT) -> str:
     if len(text) <= limit:

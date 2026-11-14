@@ -109,7 +109,7 @@ def test_set_region_alias_and_clear(bot):
     _dm(bot, "clear region")
     assert bot.dm.sent[-1].startswith("Home region cleared.")
     _dm(bot, "settings")
-    assert "Home region: not set" in bot.dm.sent[-1]
+    assert "📍 Home region\nNot set" in bot.dm.sent[-1]
 
 
 @pytest.mark.parametrize("text", ["thanks!", "ok", "cool", "hello"])
@@ -139,7 +139,7 @@ def test_home_region_opens_that_regions_resorts(bot):
 def test_set_region_and_set_state_both_list_the_resorts(bot, text):
     _dm(bot, text)
     reply = bot.dm.sent[-1]
-    assert reply.startswith("📍 Home region set to Colorado (CO).")
+    assert reply.startswith("📍 Home region set:\nColorado (CO)")
     assert "🎿 Colorado resorts" in reply
     assert "Vail" in reply and "Park City" not in reply
     # The list is live: a number picks from it
@@ -148,11 +148,11 @@ def test_set_region_and_set_state_both_list_the_resorts(bot, text):
 
 
 @pytest.mark.parametrize("text, header, setting", [
-    ("set region US Rockies", "🎿 US Rockies resorts", "Home region: US Rockies"),
-    ("set state japan",       "🎿 Japan resorts",      "Home region: Japan"),
-    ("set region west coast", "🎿 US West Coast resorts", "Home region: US West Coast"),
-    ("set region Québec",     "🎿 Québec resorts",     "Home region: Québec (QC)"),
-    ("set region quebec",     "🎿 Québec resorts",     "Home region: Québec (QC)"),
+    ("set region US Rockies", "🎿 US Rockies resorts", "📍 Home region\nUS Rockies"),
+    ("set state japan",       "🎿 Japan resorts",      "📍 Home region\nJapan"),
+    ("set region west coast", "🎿 US West Coast resorts", "📍 Home region\nUS West Coast"),
+    ("set region Québec",     "🎿 Québec resorts",     "📍 Home region\nQuébec (QC)"),
+    ("set region quebec",     "🎿 Québec resorts",     "📍 Home region\nQuébec (QC)"),
 ])
 def test_set_region_accepts_names_and_regions(bot, text, header, setting):
     _dm(bot, text)
@@ -166,7 +166,7 @@ def test_set_region_unknown_or_empty_gives_examples(bot, text):
     _dm(bot, text)
     assert "set region Colorado" in bot.dm.sent[-1]
     _dm(bot, "settings")
-    assert "Home region: not set" in bot.dm.sent[-1]
+    assert "📍 Home region\nNot set" in bot.dm.sent[-1]
 
 
 @pytest.mark.parametrize("text", ["regions", "back"])
@@ -247,14 +247,14 @@ def test_large_resort_list_stays_whole_in_first_dm(bot):
     # The whole numbered list and legend are in message 1; only the tip spills over
     assert "29 Jackson Hole Mountain Resort" in first and "📊 Snow data:" in first
     assert all(len(m) <= 1000 for m in bot.replies)
-    assert bot.replies[-1].startswith("Tip: save a home region")
+    assert "💡 Save a home region" in bot.reply      # in message 1 if it fits, else a follow-up
 
 
 def test_regions_menu_without_home_explains_setting_one(bot):
     _dm(bot, "regions")
     reply = bot.dm.sent[-1]
     assert reply.startswith("🎿 Select a region")
-    assert "Tip: save a home region" in reply and "set region Colorado" in reply
+    assert "💡 Save a home region" in reply and "set region Colorado" in reply
     assert "clear region" not in reply
 
 
@@ -262,9 +262,9 @@ def test_regions_menu_with_home_shows_it_and_how_to_clear(bot):
     _dm(bot, "set region Utah")
     _dm(bot, "regions")
     reply = bot.dm.sent[-1]
-    assert "Your home region: Utah (UT)" in reply
-    assert "Clear it: clear region" in reply
-    assert "Tip: save a home region" not in reply
+    assert "📍 Your home region:\nUtah (UT)" in reply
+    assert "Clear: clear region" in reply
+    assert "💡 Save a home region" not in reply
 
 
 @pytest.mark.parametrize("text, header", [
@@ -282,7 +282,7 @@ def test_bare_area_name_lists_its_resorts(bot, text, header):
     assert bot.reply.startswith(header)
     # Doesn't change the saved home region
     _dm(bot, "settings")
-    assert "Home region: not set" in bot.dm.sent[-1]
+    assert "📍 Home region\nNot set" in bot.dm.sent[-1]
 
 
 def test_bare_area_list_is_live(bot):
@@ -326,28 +326,28 @@ def test_midwest_is_its_own_region_and_minnesota_left_us_east(bot):
 
 def test_set_region_midwest(bot):
     _dm(bot, "set region Midwest")
-    assert bot.dm.sent[-1].startswith("📍 Home region set to US Midwest.")
+    assert bot.dm.sent[-1].startswith("📍 Home region set:\nUS Midwest")
 
 
 def test_home_region_list_says_why_and_how_to_clear(bot):
     _dm(bot, "set region Colorado")
-    assert "Clear it: clear region" in bot.dm.sent[-1]
+    assert "Clear: clear region" in bot.dm.sent[-1]
     _dm(bot, "menu")
     _dm(bot, "1")
     reply = bot.dm.sent[-1]
-    assert reply.startswith("📍 Showing your home region: Colorado (CO)")
+    assert reply.startswith("📍 Your home region:\nColorado (CO)")
     assert "🎿 Colorado resorts" in reply
-    assert "This list is your home region." in reply
-    assert "Clear it: clear region" in reply
+    assert "This is your home region." in reply
+    assert "Clear: clear region" in reply
 
 
 def test_large_home_region_keeps_list_whole(bot):
     _dm(bot, "set region US Rockies")
     _dm(bot, "menu")
     _dm(bot, "1")
-    assert bot.replies[0].startswith("📍 Showing your home region: US Rockies")
+    assert bot.replies[0].startswith("📍 Your home region:\nUS Rockies")
     assert "29 Jackson Hole Mountain Resort" in bot.replies[0]
-    assert "Clear it: clear region" in bot.reply
+    assert "Clear: clear region" in bot.reply
 
 
 @pytest.mark.parametrize("steps", [["Colorado"], ["menu", "1", "1"]])
@@ -365,7 +365,7 @@ def test_browsed_lists_without_home_suggest_setting_one(bot, steps):
         _dm(bot, text)
     reply = bot.reply
     assert "🎿" in reply
-    assert "Tip: save a home region" in reply
+    assert "💡 Save a home region" in reply
 
 
 def test_browsing_another_region_with_home_set_has_no_tip(bot):
@@ -373,7 +373,7 @@ def test_browsing_another_region_with_home_set_has_no_tip(bot):
     _dm(bot, "Japan")
     reply = bot.dm.sent[-1]
     assert "🎿 Japan resorts" in reply
-    assert "Tip: save a home region" not in reply
+    assert "💡 Save a home region" not in reply
     assert "clear region" not in reply
 
 
@@ -383,7 +383,7 @@ def test_back_to_home_list_keeps_clear_hint(bot):
     _dm(bot, "back")
     reply = bot.dm.sent[-1]
     assert "🎿 Colorado resorts" in reply
-    assert "Clear it: clear region" in reply
+    assert "Clear: clear region" in reply
 
 
 def test_midwest_list_is_grouped_by_state_alphabetically(bot):
@@ -485,6 +485,20 @@ def test_us_rockies_list_is_grouped_by_state(bot):
 def test_photo_option_explains_it_posts_publicly(bot):
     _dm(bot, "menu")
     assert "3. Post a snow photo" in bot.reply
-    assert "post one publicly and tag you" in bot.reply
+    assert "Posted publicly and tags you" in bot.reply
     _dm(bot, "help")
-    assert "post a snow photo publicly and tag you" in bot.reply
+    assert "a public photo post" in bot.reply
+
+
+def test_settings_are_stacked_for_narrow_screens(bot):
+    _dm(bot, "settings")
+    reply = bot.reply.split("\n\n(")[0]          # drop the timing footer
+    assert reply.startswith("⚙️ Your settings")
+    assert "🏔️ Home resort\nNot set\n• set it: set home Vail" in reply
+    assert "📍 Home region\nNot set\n• set it: set region Colorado" in reply
+    assert max(len(line) for line in reply.splitlines()) <= 34
+    _dm(bot, "set region Colorado")
+    _dm(bot, "settings")
+    reply = bot.reply.split("\n\n(")[0]
+    assert "📍 Home region\nColorado (CO)\n• change: set region Utah\n• clear: clear region" in reply
+    assert reply.endswith("Clear everything: reset")

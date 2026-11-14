@@ -54,7 +54,7 @@ from snowbot.menu import (
     find_menu_keyword, format_resorts_menu, format_small_talk_reply, is_menu_trigger,
     is_small_talk,
     area_display, area_label, area_resorts, find_area_request, resolve_area,
-    format_trail_map, parse_map_request, trail_map_line,
+    format_settings, format_trail_map, parse_map_request, trail_map_line,
 )
 from snowbot.snow.resolver import _RESORTS_BY_REGION, query_for, resort_query
 from snowbot.snow.formatter import SnowFormatter
@@ -276,10 +276,8 @@ class Snowbot:
                 self._broadcast_raw(request)
             elif request.source_channel == "dm":
                 self._send_dm_reply(request, (
-                    "Send me a resort or mountain name for snow conditions.\n"
-                    "Examples: Vail  or  Park City  or  Mammoth\n\n"
-                    "Set a home resort:\n"
-                    "  set home Breckenridge\n\n"
+                    "Send a resort name for a\n"
+                    "snow report, like Vail.\n\n"
                     "Send 'help' for all commands."
                 ))
             else:
@@ -309,7 +307,7 @@ class Snowbot:
                 self._db.update_request_status(db_id, "ignored")
                 return
             self._send_error_reply(
-                request, f"Sorry, I couldn't find snow conditions for {request.raw_location!r}."
+                request, f"Sorry, I couldn't find\n{request.raw_location!r}.\nTry a resort name, like Vail."
             )
             self._db.update_request_status(db_id, "error")
             return
@@ -336,8 +334,8 @@ class Snowbot:
             if report.stale_fetched_at:
                 # Live data failed; this is a recent cached report — say so up front
                 thread_posts.insert(0, (
-                    f"⚠️ Live snow data isn't reachable right now, so this report is "
-                    f"from {_age_text(report.stale_fetched_at)} ago."
+                    f"⚠️ Live data is unavailable.\n"
+                    f"This report is from\n{_age_text(report.stale_fetched_at)} ago."
                 ))
             # Full reports end with a link to the resort's trail map (or website)
             line = trail_map_line(self._content.trail_map(loc.name, loc.state))
@@ -398,7 +396,7 @@ class Snowbot:
                     raw = raw[len(prefix):].strip()
                     break
             if not raw:
-                self._send_dm_reply(request, "Please provide a resort: set home Vail")
+                self._send_dm_reply(request, "Which resort?\nTry: set home Vail")
                 return
             try:
                 report = self._snow.lookup(raw)
@@ -407,10 +405,10 @@ class Snowbot:
                                         home_raw=raw, home_display=display,
                                         home_lat=report.location.lat,
                                         home_lon=report.location.lon)
-                self._send_dm_reply(request, f"Home resort set to {display}. DM me anytime for snow conditions!")
+                self._send_dm_reply(request, f"🏔️ Home resort set:\n{display}")
             except Exception:
                 self._send_dm_reply(request,
-                    f"Couldn't find resort: {raw!r}. Try a known resort name like 'Vail' or 'Park City'.")
+                    f"I couldn't find {raw!r}.\nTry: set home Vail")
 
         elif cmd == "set_state":
             raw = request.raw_content.strip()
@@ -421,11 +419,14 @@ class Snowbot:
             area = resolve_area(raw)
             resorts = area_resorts(area)
             if not raw or not resorts:
-                what = f"I don't know the region {raw!r}." if raw else "Which region?"
+                what = f"I don't know {raw!r}." if raw else "Which region?"
                 self._send_dm_reply(request, (
-                    f"{what} Try a state, country, or region:\n"
-                    "  set region Colorado  •  set region CO\n"
-                    "  set region Japan  •  set region US Rockies\n\n"
+                    f"{what}\n"
+                    "Try a state, country,\nor region:\n"
+                    "set region Colorado\n"
+                    "set region CO\n"
+                    "set region Japan\n"
+                    "set region US Rockies\n\n"
                     "Send 'regions' to see them all."
                 ))
                 return
@@ -435,7 +436,7 @@ class Snowbot:
             # Confirm and show the area's resorts straight away
             messages = format_resorts_menu(
                 area_label(area), resorts,
-                note=f"📍 Home region set to {area_display(area)}. 'Snow reports' will start here.",
+                note=f"📍 Home region set:\n{area_display(area)}\n'Snow reports' will open it.",
                 home_hint=True,
             )
             for _msg in messages:
@@ -458,16 +459,9 @@ class Snowbot:
 
         elif cmd == "settings":
             prefs = self._db.get_user_prefs(did) if did else None
-            if prefs:
-                home = prefs.get("home_display") or prefs.get("home_raw") or "not set"
-                area = prefs.get("home_state")
-                home_state = area_display(area) if area else "not set"
-            else:
-                home  = "not set"
-                home_state = "not set"
-            self._send_dm_reply(request,
-                f"Your settings:\n  Home resort: {home}\n  Home region: {home_state}"
-            )
+            home = (prefs.get("home_display") or prefs.get("home_raw")) if prefs else None
+            area = prefs.get("home_state") if prefs else None
+            self._send_dm_reply(request, format_settings(home, area_display(area) if area else None))
 
         elif cmd == "help":
             self._send_dm_reply(request, format_help())
@@ -493,7 +487,7 @@ class Snowbot:
                     self._db.set_dm_session(did, "resorts", state=home_area)
                 for _msg in format_resorts_menu(
                     area_label(home_area), resorts,
-                    note=f"📍 Showing your home region: {area_display(home_area)}",
+                    note=f"📍 Your home region:\n{area_display(home_area)}",
                     home_hint=True,
                 ):
                     self._send_dm_reply(request, _msg)
@@ -541,7 +535,7 @@ class Snowbot:
             loc = self._snow._resolver.match_known(query)
             if loc is None:
                 self._send_dm_reply(request,
-                    f"I couldn't find a resort called {query!r}. Try: map Vail")
+                    f"I couldn't find {query!r}.\nTry: map Vail")
                 return
             name_state = (loc.name, loc.state)
         else:
@@ -553,7 +547,7 @@ class Snowbot:
                 name_state = (loc.name, loc.state) if loc else None
             if name_state is None:
                 self._send_dm_reply(request,
-                    "Which resort's trail map? Send: map Vail  (or any resort name)")
+                    "Which resort's trail map?\nTry: map Vail")
                 return
         self._send_dm_reply(request, format_trail_map(self._content.trail_map(*name_state),
                                                       name_state[0]))
@@ -627,7 +621,7 @@ class Snowbot:
             regions = list(_RESORTS_BY_REGION.keys())
             if not 1 <= index <= len(regions):
                 self._send_dm_reply(request,
-                    f"Please reply with a number between 1 and {len(regions)}.")
+                    f"Please reply with 1–{len(regions)}.")
                 return True
             region = regions[index - 1]
             if did:
@@ -640,7 +634,7 @@ class Snowbot:
             resorts = area_resorts(region)
             if not 1 <= index <= len(resorts):
                 self._send_dm_reply(request,
-                    f"Please reply with a number between 1 and {len(resorts)}.")
+                    f"Please reply with 1–{len(resorts)}.")
                 return True
             resort_entry = resorts[index - 1]
             # Drop the numbered list so later bare numbers mean the main menu again,
@@ -690,7 +684,7 @@ class Snowbot:
                 self._db.record_photo_post(request.requester_did, photo.filename)
             # The post lives on the bot's own profile, not the requester's
             post_url = _uri_to_url(uri, self._settings.bluesky_handle)
-            msg = f"📸 Just posted a snow photo for you!\n\n{post_url}" if post_url else "📸 Just posted a snow photo for you!"
+            msg = f"📸 Posted a snow photo\nfor you:\n{post_url}" if post_url else "📸 Posted a snow photo for you!"
             self._send_dm_reply(request, msg)
         except Exception as exc:
             logger.error("[bot] Public photo post failed: %s", exc)
