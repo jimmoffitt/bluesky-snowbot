@@ -45,8 +45,8 @@ def test_map_named_resort(make_bot):
 
 def test_map_resort_without_direct_link_gives_website(make_bot):
     b = make_bot()
-    reply = _dm(b, "trail map Alta")
-    assert "don't have a direct trail-map link for Alta" in reply
+    reply = _dm(b, "trail map Giants Ridge")
+    assert "don't have a direct trail-map link for Giants Ridge" in reply
     assert "https://" in reply
 
 
