@@ -576,6 +576,14 @@ for _entry in _RESORTS:
 _KEYS_LONGEST_FIRST: list[str] = sorted(_LOOKUP, key=len, reverse=True)
 
 
+def query_for(name: str, state: str) -> str:
+    """resort_query() for the resort with this display name and state."""
+    for entry in _RESORTS:
+        if entry["display"] == name and entry["state"] == state:
+            return resort_query(entry)
+    return name
+
+
 def resort_query(entry: dict) -> str:
     """
     A lookup string that resolves back to exactly this resort.

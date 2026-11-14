@@ -15,6 +15,7 @@ import logging
 import time
 from typing import Optional
 
+from snowbot.channels.notify.richtext import build_link_facets
 from snowbot.channels.notify.base import (
     NotificationChannel,
     NotificationPayload,
@@ -155,7 +156,9 @@ class BlueskyPostNotifyChannel(NotificationChannel):
             )
             reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(root=root, parent=parent)
 
-        return self._client.send_post(text=text, reply_to=reply_ref)
+        # Make URLs clickable (Bluesky needs explicit link facets)
+        facets = build_link_facets(text)
+        return self._client.send_post(text=text, reply_to=reply_ref, facets=facets or None)
 
     def post_photo(self, photo_path: str, caption: str,
                    mention_handle: str = "", mention_did: str = "") -> Optional[str]:

@@ -166,6 +166,29 @@ class SnowFormatter:
     # Open-Meteo only posts (fallback)
     # ------------------------------------------------------------------
 
+    def format_public_summary(self, report: SnowReport, dm_query: str = "",
+                              note: str = "") -> str:
+        """
+        One short post for a public mention reply: the headline numbers, then an
+        invitation to DM for the full report, forecast, and trail map.
+        """
+        loc, snow, cond, sn = report.location, report.snow, report.conditions, report.snotel
+        if sn and sn.snow_depth_in is not None:
+            base = f'base {sn.snow_depth_in:.0f}"'
+        else:
+            base = f'base ~{_cm_to_in(snow.depth_cm):.0f}" (est.)'
+        lines = [f"⛷️ {loc.name}, {loc.state}"]
+        if note:
+            lines.append(note)
+        lines += [
+            f'❄️ {_cm_to_in(snow.new_24h_cm):.0f}" new (24h) · {_cm_to_in(snow.new_72h_cm):.0f}" (72h) · {base}',
+            f"🌡️ {_c_to_f(cond.temp_c):.0f}°F · wind {_kmh_to_mph(cond.wind_speed_kmh):.0f} mph · {cond.weather_desc}",
+            "",
+            (f'💬 DM me "{dm_query}" for the full report, 7-day forecast and trail map.'
+             if dm_query else "💬 DM me for the full report, 7-day forecast and trail map."),
+        ]
+        return _truncate("\n".join(lines))
+
     def _post1_openmeteo(self, report: SnowReport) -> str:
         """Snow depth and recent snowfall totals (Open-Meteo + optional SNOTEL)."""
         loc  = report.location

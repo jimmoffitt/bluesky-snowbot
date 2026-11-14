@@ -75,7 +75,36 @@ def test_bare_map_uses_home_resort(make_bot):
     assert _dm(b, "map").startswith("🗺️ Lutsen Mountains trail map:")
 
 
-def test_public_mention_report_has_no_map_line(make_bot, sample_snow_report):
-    b = make_bot(lookup=lambda raw: sample_snow_report)
-    _send(b, "Vail", channel="firehose")
-    assert not any("Trail map" in t for p in b.post.payloads for t in p.post_thread)
+class _FakeClient:
+    def __init__(self):
+        self.calls = []
+
+    def send_post(self, **kwargs):
+        self.calls.append(kwargs)
+        return type("Ref", (), {"uri": f"at://bot/post/{len(self.calls)}", "cid": "cid"})()
+
+
+def _post_channel():
+    from snowbot.channels.notify.bluesky_post import BlueskyPostNotifyChannel
+    ch = BlueskyPostNotifyChannel.__new__(BlueskyPostNotifyChannel)   # skip login
+    ch._client = _FakeClient()
+    return ch
+
+
+def test_public_posts_make_urls_clickable():
+    ch = _post_channel()
+    text = "🗺️ Trail map: https://www.vail.com/the-mountain/about-the-mountain/trail-map.aspx"
+    ch._post(text=text)
+    facets = ch._client.calls[-1]["facets"]
+    assert len(facets) == 1
+    f = facets[0]
+    raw = text.encode("utf-8")
+    assert raw[f.index.byte_start:f.index.byte_end].decode() == \
+        "https://www.vail.com/the-mountain/about-the-mountain/trail-map.aspx"
+    assert f.features[0].uri.endswith("trail-map.aspx")
+
+
+def test_public_posts_without_urls_have_no_facets():
+    ch = _post_channel()
+    ch._post(text="⛷️ Vail, CO — 12\" new")
+    assert ch._client.calls[-1]["facets"] is None

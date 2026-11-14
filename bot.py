@@ -56,7 +56,7 @@ from snowbot.menu import (
     area_display, area_label, area_resorts, find_area_request, resolve_area,
     format_trail_map, parse_map_request, trail_map_line,
 )
-from snowbot.snow.resolver import _RESORTS_BY_REGION, resort_query
+from snowbot.snow.resolver import _RESORTS_BY_REGION, query_for, resort_query
 from snowbot.snow.formatter import SnowFormatter
 from snowbot.snow.service import SnowService
 from snowbot.storage.db import Database
@@ -248,6 +248,15 @@ class Snowbot:
             self._db.update_request_status(db_id, "complete")
             return
 
+        # Public mentions only get a reply for a resort in our table. Free text
+        # is geocoded for DMs, but in public that turns chatter ("you rock",
+        # "nice photo!") into reports for random places.
+        if request.source_channel == "firehose" and not self._snow.names_known_resort(request.raw_location):
+            logger.info("[bot] Mention doesn't name a known resort — not replying: %r",
+                        request.raw_content[:80])
+            self._db.update_request_status(db_id, "ignored")
+            return
+
         # Snow lookup
         self._db.update_request_processing_start(db_id)
         try:
@@ -265,32 +274,39 @@ class Snowbot:
             return
         except Exception as exc:
             logger.error("[bot] Snow lookup failed: %s", exc)
-            self._send_error_reply(request, "Sorry, snow data is temporarily unavailable.")
+            if request.source_channel != "firehose":
+                # No public "sorry" replies — the admin alert still goes out
+                self._send_error_reply(request, "Sorry, snow data is temporarily unavailable.")
             self._alert_admin(request, exc, "Snow lookup failed")
             self._db.update_request_status(db_id, "error")
             return
 
         # Format
         self._db.update_request_formatting_start(db_id)
-        thread_posts = self._formatter.format_thread(report)
-        if report.stale_fetched_at:
-            # Live data failed; this is a recent cached report — say so up front
-            thread_posts.insert(0, (
-                f"⚠️ Live snow data isn't reachable right now, so this report is "
-                f"from {_age_text(report.stale_fetched_at)} ago."
-            ))
-
-        if request.source_channel == "dm":
-            # DM reports end with a link to the resort's trail map (or website)
-            loc = report.location
+        loc = report.location
+        if request.source_channel == "firehose":
+            # Public mention: one short post that invites a DM for the rest
+            note = (f"⚠️ From {_age_text(report.stale_fetched_at)} ago (live data unavailable)"
+                    if report.stale_fetched_at else "")
+            thread_posts = [self._formatter.format_public_summary(
+                report, dm_query=query_for(loc.name, loc.state), note=note)]
+        else:
+            thread_posts = self._formatter.format_thread(report)
+            if report.stale_fetched_at:
+                # Live data failed; this is a recent cached report — say so up front
+                thread_posts.insert(0, (
+                    f"⚠️ Live snow data isn't reachable right now, so this report is "
+                    f"from {_age_text(report.stale_fetched_at)} ago."
+                ))
+            # Full reports end with a link to the resort's trail map (or website)
             line = trail_map_line(self._content.trail_map(loc.name, loc.state))
             if line:
                 thread_posts.append(line)
-            if request.requester_did:
+            if request.source_channel == "dm" and request.requester_did:
                 self._last_resort[request.requester_did] = (loc.name, loc.state)
-        if resort_selected:
-            _append_if_fits(thread_posts, "\n\nReply 'back' for the resort list.")
-        _append_latency_footer(thread_posts, request.received_at, self._settings.server_type)
+            if resort_selected:
+                _append_if_fits(thread_posts, "\n\nReply 'back' for the resort list.")
+            _append_latency_footer(thread_posts, request.received_at, self._settings.server_type)
 
         target_channel = self._route(request)
         payload = NotificationPayload(

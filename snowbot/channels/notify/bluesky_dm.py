@@ -19,6 +19,7 @@ import re
 import time
 from typing import Optional
 
+from snowbot.channels.notify.richtext import URL_RE, build_link_facets
 from snowbot.channels.notify.base import (
     NotificationChannel,
     NotificationPayload,
@@ -165,27 +166,6 @@ class BlueskyDMNotifyChannel(NotificationChannel):
         return chunks
 
 
-_URL_RE = re.compile(r'https?://\S+')
-
-
-def _build_link_facets(text: str) -> list:
-    """Return a list of AppBskyRichtextFacet.Main for every URL found in text."""
-    try:
-        from atproto import models as atproto_models
-    except ImportError:
-        return []
-    facets = []
-    text_bytes = text.encode("utf-8")
-    for match in _URL_RE.finditer(text):
-        byte_start = len(text[:match.start()].encode("utf-8"))
-        byte_end   = len(text[:match.end()].encode("utf-8"))
-        facets.append(
-            atproto_models.AppBskyRichtextFacet.Main(
-                index=atproto_models.AppBskyRichtextFacet.ByteSlice(
-                    byte_start=byte_start,
-                    byte_end=byte_end,
-                ),
-                features=[atproto_models.AppBskyRichtextFacet.Link(uri=match.group())],
-            )
-        )
-    return facets
+# Kept for existing callers; see snowbot/channels/notify/richtext.py
+_URL_RE = URL_RE
+_build_link_facets = build_link_facets

@@ -34,14 +34,14 @@ An experimental Bluesky bot that answers "how's the snow?" for 110 ski resorts a
 
 ### In public
 
-Post `@snowbot.bsky.social Mammoth` and the bot replies to your post with the report. If a mention doesn't name a resort it recognizes, the bot stays quiet rather than replying to chatter.
+Post `@snowbot.bsky.social Mammoth` and the bot replies under your post with a one-line snapshot (new snow, base, temperature) and an invitation to DM for the full report, forecast, and trail map. Public replies only happen for the resorts in its list; anything else after a mention is treated as chatter and ignored. If snow data is unavailable, it stays quiet in public rather than posting an error.
 
 ### What's public and what's private
 
 | Trigger | Where the reply goes |
 |---|---|
 | Anything sent by DM | Back to you by DM |
-| A public mention that names a resort | A public reply in your thread |
+| A public mention that names a resort | One short reply in your thread, pointing you to DMs |
 | `photos` (by DM) | A **public post** on the bot's feed that tags you, because Bluesky DMs can't carry images. The bot DMs you the link. |
 
 Each user gets their own photo order: you'll see every photo once before any repeats.
