@@ -204,6 +204,44 @@ def _normalize(text: str) -> str:
     return " ".join(re.sub(r"[^\w\s]", " ", t.lower()).split())
 
 
+# "map", "trail map Vail", "show me the map for Alta", "Vail trail map", "piste map Zermatt"
+_MAP_PREFIX = re.compile(
+    r"^(?:show me |show |get |send |the )*(?:(?:trail|piste|ski|mountain|resort)[\s-]*)?maps?\b"
+    r"(?:\s+(?:for|of|at))?\s*(?P<rest>.*)$",
+    re.IGNORECASE,
+)
+_MAP_SUFFIX = re.compile(r"^(?P<rest>.+?)'?s?\s+(?:trail|piste|ski|mountain)[\s-]*maps?$", re.IGNORECASE)
+
+
+def parse_map_request(text: str) -> Optional[str]:
+    """
+    The resort named in a trail-map request ("" for a bare "map"), or None if
+    the message isn't asking for a map.
+    """
+    t = " ".join(re.sub(r"[!?.]+$", "", text.strip()).split())
+    m = _MAP_PREFIX.match(t) or _MAP_SUFFIX.match(t)
+    return m.group("rest").strip() if m else None
+
+
+def format_trail_map(tm, name: str) -> str:
+    """DM reply for a trail-map request."""
+    if tm and tm.url:
+        return f"🗺️ {name} trail map:\n{tm.url}"
+    if tm and tm.site:
+        return (f"🗺️ I don't have a direct trail-map link for {name} yet — "
+                f"it's usually on the resort's website:\n{tm.site}")
+    return f"Sorry, I don't have a trail map for {name} yet."
+
+
+def trail_map_line(tm) -> str:
+    """One line for the end of a DM snow report."""
+    if tm and tm.url:
+        return f"🗺️ Trail map: {tm.url}"
+    if tm and tm.site:
+        return f"🌐 Resort site: {tm.site}"
+    return ""
+
+
 def is_menu_trigger(text: str) -> bool:
     return text.strip().lower() in MENU_TRIGGERS
 
@@ -413,6 +451,7 @@ def format_help() -> str:
         "  photos — post a snow photo for you\n"
         "  music — weather & mountain playlists\n"
         "  regions — browse all regions\n"
+        "  map Vail — the resort's trail map\n"
         "  set home Vail — save home resort\n"
         "  set region Colorado — save home region\n"
         "     (or CO, Japan, US Rockies…)\n"

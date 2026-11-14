@@ -5,6 +5,7 @@ Data files (in snowbot/data/):
   links.csv      — snow science / research organizations
   playlists.csv  — curated Spotify playlists
   photos.csv     — photo filenames + captions
+  trail_maps.csv — each resort's official trail-map page (or its website)
 
 All loaders return plain lists of dicts so callers don't need to know
 about CSV internals.
@@ -54,9 +55,38 @@ class Photo:
         return self.photos_dir / self.filename
 
 
+@dataclass
+class TrailMap:
+    display: str
+    state: str
+    url: str    # the resort's own trail-map page ("" if not found)
+    site: str   # the resort's website (fallback)
+
+    @property
+    def link(self) -> str:
+        return self.url or self.site
+
+
 # ---------------------------------------------------------------------------
 # Loaders
 # ---------------------------------------------------------------------------
+
+def load_trail_maps(path: Path = _DATA_DIR / "trail_maps.csv") -> dict[tuple[str, str], TrailMap]:
+    """Load trail_maps.csv (semicolon-delimited, '#' comments) keyed by (display, state)."""
+    maps: dict[tuple[str, str], TrailMap] = {}
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            rows = csv.reader((l for l in f if not l.startswith("#")), delimiter=";")
+            for row in rows:
+                if len(row) < 4 or not row[0].strip():
+                    continue
+                tm = TrailMap(*(c.strip() for c in row[:4]))
+                if tm.link:
+                    maps[(tm.display, tm.state)] = tm
+    except FileNotFoundError:
+        logger.warning("[content] trail_maps.csv not found at %s", path)
+    return maps
+
 
 def load_links(path: Path = _DATA_DIR / "links.csv") -> list[SnowLink]:
     """Load snow science / research links from links.csv (semicolon-delimited)."""
@@ -127,19 +157,25 @@ class ContentLibrary:
         lib.all_links()             → list[SnowLink]
     """
 
-    def __init__(self, links: list[SnowLink], playlists: list[Playlist], photos: list[Photo]) -> None:
-        self._links     = links
-        self._playlists = playlists
-        self._photos    = photos
+    def __init__(self, links: list[SnowLink], playlists: list[Playlist], photos: list[Photo],
+                 trail_maps: Optional[dict[tuple[str, str], TrailMap]] = None) -> None:
+        self._links      = links
+        self._playlists  = playlists
+        self._photos     = photos
+        self._trail_maps = trail_maps or {}
 
     @classmethod
     def load(cls, photos_dir: Optional[Path] = None) -> "ContentLibrary":
         links     = load_links()
         playlists = load_playlists()
         photos    = load_photos(photos_dir=photos_dir or _DATA_DIR / "photos")
-        logger.info("[content] Loaded %d links, %d playlists, %d photos",
-                    len(links), len(playlists), len(photos))
-        return cls(links=links, playlists=playlists, photos=photos)
+        trail_maps = load_trail_maps()
+        logger.info("[content] Loaded %d links, %d playlists, %d photos, %d trail maps",
+                    len(links), len(playlists), len(photos), len(trail_maps))
+        return cls(links=links, playlists=playlists, photos=photos, trail_maps=trail_maps)
+
+    def trail_map(self, display: str, state: str) -> Optional[TrailMap]:
+        return self._trail_maps.get((display, state))
 
     def all_links(self) -> list[SnowLink]:
         return list(self._links)

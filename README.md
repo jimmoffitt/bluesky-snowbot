@@ -24,6 +24,7 @@ An experimental Bluesky bot that answers "how's the snow?" for 110 ski resorts a
 | `Colorado`, `Japan`, `US Midwest` | A numbered list of resorts in that state, country, or region |
 | a number | Picks from the list you were just shown |
 | `back` | Goes up one level (report → resort list → regions → main menu) |
+| `map Vail`, `Vail trail map` | A link to the resort's own trail map. Plain `map` means the resort you just asked about. |
 | `set home Breckenridge` | Saves a home resort (shown in `settings`) |
 | `set region Colorado` | Saves a home area (state, country, or region). "Snow reports" then opens it. |
 | `clear home`, `clear region`, `reset` | Clears those settings |

@@ -54,6 +54,7 @@ from snowbot.menu import (
     find_menu_keyword, format_resorts_menu, format_small_talk_reply, is_menu_trigger,
     is_small_talk,
     area_display, area_label, area_resorts, find_area_request, resolve_area,
+    format_trail_map, parse_map_request, trail_map_line,
 )
 from snowbot.snow.resolver import _RESORTS_BY_REGION, resort_query
 from snowbot.snow.formatter import SnowFormatter
@@ -87,6 +88,8 @@ class Snowbot:
         self._notify_channels: dict[str, NotificationChannel] = {}
         self._running = False
         self._lock    = threading.Lock()
+        # Last resort each DM user got a report for, so a bare "map" knows what they mean
+        self._last_resort: dict[str, tuple[str, str]] = {}
         # Admin alert throttle: error key → (monotonic time last sent, count suppressed since)
         self._admin_alerts: dict[str, tuple[float, int]] = {}
         self._admin_lock = threading.Lock()
@@ -180,6 +183,13 @@ class Snowbot:
                 # A resort pick sets raw_location and falls through to the snow lookup
                 resort_selected = session is not None and session.get("menu") == "resorts"
 
+            # Trail map request: "map", "map Vail", "Vail trail map"
+            map_query = None if resort_selected else parse_map_request(raw)
+            if map_query is not None:
+                self._handle_map_request(request, map_query)
+                self._db.update_request_status(db_id, "complete")
+                return
+
             # Small talk → short nudge instead of a geocoded "location"
             if not resort_selected and is_small_talk(raw):
                 self._send_dm_reply(request, format_small_talk_reply())
@@ -270,6 +280,14 @@ class Snowbot:
                 f"from {_age_text(report.stale_fetched_at)} ago."
             ))
 
+        if request.source_channel == "dm":
+            # DM reports end with a link to the resort's trail map (or website)
+            loc = report.location
+            line = trail_map_line(self._content.trail_map(loc.name, loc.state))
+            if line:
+                thread_posts.append(line)
+            if request.requester_did:
+                self._last_resort[request.requester_did] = (loc.name, loc.state)
         if resort_selected:
             _append_if_fits(thread_posts, "\n\nReply 'back' for the resort list.")
         _append_latency_footer(thread_posts, request.received_at, self._settings.server_type)
@@ -456,6 +474,32 @@ class Snowbot:
 
         elif branch == "help":
             self._send_dm_reply(request, format_help())
+
+    def _handle_map_request(self, request: AlertRequest, query: str) -> None:
+        """Reply with a resort's trail-map link. A bare "map" means the last resort
+        this user got a report for, or else their home resort."""
+        did = request.requester_did
+        name_state = None
+        if query:
+            loc = self._snow._resolver.match_known(query)
+            if loc is None:
+                self._send_dm_reply(request,
+                    f"I couldn't find a resort called {query!r}. Try: map Vail")
+                return
+            name_state = (loc.name, loc.state)
+        else:
+            name_state = self._last_resort.get(did) if did else None
+            if name_state is None and did:
+                prefs = self._db.get_user_prefs(did)
+                home = prefs.get("home_raw") if prefs else None
+                loc = self._snow._resolver.match_known(home) if home else None
+                name_state = (loc.name, loc.state) if loc else None
+            if name_state is None:
+                self._send_dm_reply(request,
+                    "Which resort's trail map? Send: map Vail  (or any resort name)")
+                return
+        self._send_dm_reply(request, format_trail_map(self._content.trail_map(*name_state),
+                                                      name_state[0]))
 
     def _home_area(self, did: Optional[str]) -> Optional[str]:
         """The user's saved home region/state key, or None."""

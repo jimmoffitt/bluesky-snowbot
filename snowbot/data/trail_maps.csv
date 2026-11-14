@@ -1,0 +1,113 @@
+# Trail map links per resort (display;state;trail_map_url;resort_site_url)
+# trail_map_url is the resort's own trail-map page; when blank the bot links resort_site_url.
+# Edit freely — found by scripts in Nov 2026 and checked to load (Vail blocks scripts but works in a browser).
+Vail;CO;https://www.vail.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.vail.com
+Breckenridge;CO;https://www.breckenridge.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.breckenridge.com/
+Aspen Mountain;CO;https://www.aspensnowmass.com/four-mountains/aspen-mountain/trail-maps;https://www.aspensnowmass.com/four-mountains/aspen-mountain
+Snowmass;CO;https://www.aspensnowmass.com/four-mountains/snowmass/trail-maps;https://www.aspensnowmass.com/four-mountains/snowmass
+Beaver Creek;CO;https://www.beavercreek.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.beavercreek.com/
+Telluride;CO;https://tellurideskiresort.com/mountain/#TRAIL%20MAPS;https://tellurideskiresort.com
+Steamboat Springs;CO;;https://www.steamboat.com/
+Copper Mountain;CO;https://www.coppercolorado.com/the-mountain/trail-area-maps/tracker-app/;https://www.coppercolorado.com/
+Arapahoe Basin;CO;https://www.arapahoebasin.com/trail-maps/;https://www.arapahoebasin.com/
+Keystone;CO;https://www.keystoneresort.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.keystoneresort.com/
+Crested Butte;CO;https://www.skicb.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.skicb.com/
+Eldora;CO;;https://www.eldora.com/
+Loveland;CO;https://skiloveland.com/the-mountain/trail-map-mountain-stats/;https://skiloveland.com/
+Winter Park;CO;https://www.winterparkresort.com/the-mountain/mountain-information/maps;https://www.winterparkresort.com
+Wolf Creek;CO;https://wolfcreekski.com/area-maps/;https://wolfcreekski.com/
+Park City Mountain;UT;https://www.parkcitymountain.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.parkcitymountain.com/
+Snowbird;UT;https://snowbird.com/maps;https://www.snowbird.com/
+Alta;UT;;https://www.alta.com/
+Deer Valley;UT;https://www.deervalley.com/explore-the-mountain/mountain-report#/maps;https://www.deervalley.com/
+Canyons Village;UT;https://www.parkcitymountain.com/the-mountain/about-the-mountain/trail-map.aspx;
+Solitude Mountain;UT;https://www.solitudemountain.com/mountain-and-village/mountain-information/maps;https://www.solitudemountain.com/
+Mammoth Mountain;CA;https://www.mammothmountain.com/on-the-mountain/winter-trail-map;https://www.mammothmountain.com/
+Palisades Tahoe;CA;https://www.palisadestahoe.com/mountain-information/trail-maps;https://www.palisadestahoe.com
+Northstar California;CA;https://www.northstarcalifornia.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.northstarcalifornia.com/
+Heavenly Mountain;CA;https://www.skiheavenly.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.skiheavenly.com/
+Kirkwood;CA;https://www.kirkwood.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.kirkwood.com/
+Jackson Hole Mountain Resort;WY;https://www.jacksonhole.com/maps;https://www.jacksonhole.com
+Big Sky Resort;MT;;https://bigskyresort.com
+Sun Valley;ID;https://www.sunvalley.com/the-mountain/maps-guides;https://www.sunvalley.com/
+Taos Ski Valley;NM;;https://www.skitaos.com/
+Stowe Mountain Resort;VT;https://www.stowe.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.stowe.com
+Killington Resort;VT;;https://www.killington.com/
+Sugarbush Resort;VT;https://links.imagerelay.com/cdn/1980/ql/7d66b14e89414d4cb778d19f33660efc/2025-26-Sugarbush_Trail_Map.pdf;https://www.sugarbush.com/
+Afton Alps;MN;https://www.aftonalps.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.aftonalps.com/
+Lutsen Mountains;MN;https://www.lutsen.com/mountain-info/trail-map-mountain-stats;https://www.lutsen.com/
+Spirit Mountain;MN;https://spiritmt.com/winter/downhill/#downhill-sports;https://spiritmt.com/
+Buck Hill;MN;https://buckhill.com/skiing-snowboarding/winter-trail-map/;https://buckhill.com/
+Giants Ridge;MN;;https://www.giantsridge.com/
+Wild Mountain;MN;https://wildmountain.com/mountain-info/skisb-trail-map;https://wildmountain.com/
+Hyland Hills;MN;https://www.threeriversparks.org/page/hyland-hills-ski-runs-terrain-park;https://www.threeriversparks.org/location/hyland-hills-ski-area
+Granite Peak;WI;https://www.skigranitepeak.com/mountain-info/trail-map-mountain-stats;https://www.skigranitepeak.com/
+Cascade Mountain;WI;https://www.cascademountain.com/trail-map/;https://www.cascademountain.com/
+Wilmot Mountain;WI;https://www.wilmotmountain.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.wilmotmountain.com/
+Mt. La Crosse;WI;https://mtlacrosse.com/trail-map/;https://mtlacrosse.com/
+Devil's Head;WI;https://www.devilsheadresort.com/ski-resort-mountain-sauk-merrimac-wi-wisconsin/trail-map/;https://www.devilsheadresort.com/
+Whitecap Mountains;WI;https://whitecapresort.com/winter/trail-map-snow-report;https://whitecapresort.com/
+Trollhaugen;WI;https://trollhaugen.com/trail-map/;https://trollhaugen.com/
+Boyne Mountain;MI;https://www.boynemountain.com/mountain-maps;https://www.boyneresorts.com/
+The Highlands;MI;https://www.highlandsharborsprings.com/resort-maps;https://www.highlandsharborsprings.com/
+Crystal Mountain;MI;https://www.crystalmountain.com/ski/our-mountain/winter-trail-maps;https://www.crystalmountain.com
+Nub's Nob;MI;https://www.nubsnob.com/trail-maps/;https://www.nubsnob.com/
+Mount Bohemia;MI;https://www.mtbohemia.com/trail-maps/;https://www.mtbohemia.com/
+Big Powderhorn;MI;https://bigpowderhorn.net/trail-map/;https://bigpowderhorn.net/
+Caberfae Peaks;MI;https://caberfaepeaks.com/home/trail-map/;https://caberfaepeaks.com
+Pine Knob;MI;https://skipineknob.com/trail-map/;https://skipineknob.com/
+Mt. Bachelor;OR;https://www.mtbachelor.com/the-mountain/maps/winter-lift-trail-map/;https://www.mtbachelor.com/
+Crystal Mountain;WA;https://www.crystalmountainresort.com/the-mountain/trail-maps;https://www.crystalmountainresort.com/
+Stevens Pass;WA;https://www.stevenspass.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.stevenspass.com/site
+Mt. Baker;WA;https://www.mtbaker.us/the-mountain/trail-map/;https://www.mtbaker.us/
+Alyeska Resort;AK;;https://www.alyeskaresort.com/
+Mt. Rose;NV;https://skirose.com/trail-maps/;https://skirose.com/
+Brighton Resort;UT;;https://brightonresort.com/
+Snowbasin Resort;UT;https://www.snowbasin.com/the-mountain/trail-maps/;https://www.snowbasin.com/
+Grand Targhee Resort;WY;https://www.grandtarghee.com/the-mountain/mountain-information/trail-maps;https://www.grandtarghee.com/
+Whitefish Mountain Resort;MT;https://skiwhitefish.com/trail-maps/;https://skiwhitefish.com
+Sunday River;ME;https://www.sundayriver.com/resort-maps;https://www.sundayriver.com/
+Sugarloaf;ME;https://www.sugarloaf.com/mountain-info#mountainmaps;https://www.sugarloaf.com/
+Loon Mountain;NH;https://www.loonmtn.com/mountain-maps;https://www.loonmtn.com/
+Cannon Mountain;NH;https://www.cannonmt.com/trail-map;https://www.cannonmt.com/
+Jay Peak;VT;https://jaypeakresort.com/skiing-riding/snow-report-maps/trail-map;https://jaypeakresort.com/
+Whistler Blackcomb;BC;https://www.whistlerblackcomb.com/the-mountain/about-the-mountain/trail-map.aspx;https://www.whistlerblackcomb.com
+Revelstoke Mountain Resort;BC;https://www.revelstokemountainresort.com/discover/about/trail-maps/;https://www.revelstokemountainresort.com/
+Big White Ski Resort;BC;;https://www.bigwhite.com/geo/usa
+Sun Peaks Resort;BC;https://www.sunpeaksresort.com/ski-ride/the-mountain/trail-maps-stats;https://www.sunpeaksresort.com/
+Fernie Alpine Resort;BC;https://skifernie.com/discover-fernie/resort-map/;https://skifernie.com/
+Kicking Horse Mountain Resort;BC;https://kickinghorseresort.com/discover-kickinghorse/resort-map/;https://kickinghorseresort.com/
+Red Mountain Resort;BC;https://www.redresort.com/maps-stats/;https://www.redresort.com/
+Panorama Mountain Resort;BC;https://www.panoramaresort.com/while-you-are-here/map;https://www.panoramaresort.com
+Lake Louise Ski Resort;AB;;https://www.skilouise.com/
+Banff Sunshine Village;AB;https://www.skibanff.com/the-mountain/lifts-terrain/trail-maps;https://www.skibanff.com
+Marmot Basin;AB;;https://www.skimarmot.com
+Mont-Tremblant;QC;;https://www.tremblant.ca/
+Niseko Grand Hirafu;HK;https://www.niseko.ne.jp/en/map/;https://www.niseko.ne.jp/en/
+Rusutsu Resort;HK;https://rusutsu.com/trail-map/;https://rusutsu.com/
+Furano Ski Resort;HK;https://www.princehotels.com/en/ski/furano/index.html#mountainmap;https://www.princehotels.com/en/ski/furano/
+Kiroro Mountain Resort;HK;https://www.kiroro.co.jp/trailmap/;https://www.kiroro.co.jp/
+Hakuba Valley (Happo-One);NG;;https://iwatake.jp/
+Nozawa Onsen;NG;;https://nozawaski.com/
+Shiga Kogen;NG;;https://shigakogen-ski.or.jp/lift/giant/
+Naeba Ski Resort;NI;;https://www.princehotels.co.jp/ski/naeba/
+Chamonix Mont-Blanc;FR;;https://www.planards.fr/en/homepage-alpin-coaster-attractions-park/
+Courchevel 1850;FR;;https://courchevel.com/
+Val d'Isère;FR;;https://www.espacekilly.com/
+Méribel;FR;;https://www.les3vallees.com/fr
+Zermatt;CH;https://www.matterhornparadise.ch/en/experience/skiing/piste-map;https://www.matterhornparadise.ch/en
+Verbier;CH;;https://www.4vallees.ch/
+Davos;CH;;https://www.ssd.ch/infos/skigebiet-davos-klosters/
+St. Anton am Arlberg;AT;;https://www.stantonamarlberg.com/en/home
+Ischgl;AT;https://www.ischgl.com/en/silvrettaseilbahnag/winter/skimap;https://www.ischgl.com/en/winter
+Kitzbühel;AT;;https://www.kitzski.at/en/
+Lech/Zürs;AT;;https://www.skiarlberg.at/en
+Cortina d'Ampezzo;IT;;https://www.impianticortina.it/
+Madonna di Campiglio;IT;https://www.ski.it/en/info-live/interactive-ski-map;https://www.ski.it/en
+Grandvalira (Andorra);AD;;https://www.grandvalira.com/language_selection_page?destination=/node/427
+Coronet Peak;NZ;;https://www.coronetpeak.co.nz/
+The Remarkables;NZ;;https://www.theremarkables.co.nz/
+Mt. Hutt;NZ;;https://www.mthutt.co.nz/
+Cardrona Alpine Resort;NZ;;https://www.cardrona.com/
+Treble Cone;NZ;;https://www.treblecone.com/
+Ohau Snow Fields;NZ;;https://www.ohau.co.nz/ohau-snow-fields/snow
