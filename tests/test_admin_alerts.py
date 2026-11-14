@@ -143,3 +143,29 @@ def test_no_dm_channel_never_falls_back_to_public_post(make_bot):
     # The user's error reply may route elsewhere, but no admin alert is posted publicly
     assert not any(ADMIN in (p.recipient_handle or "") for p in b.post.payloads)
     assert not any("Snowbot: Snow lookup failed" in p.post_thread[0] for p in b.post.payloads)
+
+
+def test_stale_report_is_labeled_and_admin_alerted(make_bot, sample_snow_report):
+    from datetime import datetime, timedelta
+    sample_snow_report.stale_fetched_at = (datetime.utcnow() - timedelta(minutes=190)).isoformat()
+    try:
+        _timeout()
+    except Exception as exc:
+        sample_snow_report.stale_error = exc
+    b = make_bot(lookup=lambda raw: sample_snow_report)
+    _send(b, "Vail")
+    user_dm = b.dm.payloads[0].post_thread
+    assert user_dm[0].startswith("⚠️ Live snow data isn't reachable right now")
+    assert "3 hr 10 min ago" in user_dm[0]
+    assert any("Vail" in p for p in user_dm[1:])            # the report itself follows
+    alerts = _admin_dms(b)
+    assert len(alerts) == 1
+    assert "Live snow data failed (sent a cached report)" in alerts[0].post_thread[0]
+    assert "ReadTimeout" in alerts[0].post_thread[0]
+
+
+def test_fresh_report_has_no_stale_note(make_bot, sample_snow_report):
+    b = make_bot(lookup=lambda raw: sample_snow_report)
+    _send(b, "Vail")
+    assert "Live snow data" not in b.dm.payloads[0].post_thread[0]
+    assert _admin_dms(b) == []

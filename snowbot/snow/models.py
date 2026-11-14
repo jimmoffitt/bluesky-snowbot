@@ -159,6 +159,10 @@ class SnowReport:
     conditions: ConditionsReport       # Open-Meteo (temp, wind, sky)
     operations: Optional[ResortOperations] = None   # SnoCountry (resort-reported)
     snotel: Optional[SnotelReading] = None          # NRCS AWDB (observed snow depth/SWE)
+
+    # Set when live data couldn't be fetched and a recent cached report was used
+    stale_fetched_at: Optional[str] = None                     # ISO UTC time of the cached fetch
+    stale_error: Optional[BaseException] = field(default=None, repr=False, compare=False)
     forecast: list = field(default_factory=list)    # list[DailyForecast] — 7-day outlook
     fetched_at: datetime = field(default_factory=datetime.utcnow)
     data_source: str = "Open-Meteo"

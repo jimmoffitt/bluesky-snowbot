@@ -17,6 +17,8 @@ import logging
 from typing import Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,26 @@ DAILY_VARS = [
     "wind_speed_10m_max",
 ]
 
-REQUEST_TIMEOUT = 15  # seconds
+# Fail fast and retry: from the Pi, connections to Open-Meteo sometimes stall
+# in the TCP/TLS handshake while the next attempt succeeds right away.
+CONNECT_TIMEOUT = 4    # seconds to establish the connection
+READ_TIMEOUT    = 8    # seconds to wait for the response
+RETRIES         = 2    # extra attempts after the first (3 tries in all)
+BACKOFF         = 0.5  # seconds; waits 0.5s, then 1s between tries
+
+
+def _make_session() -> requests.Session:
+    """A keep-alive session that retries stalled connects/reads and 5xx replies."""
+    retry = Retry(
+        total=RETRIES, connect=RETRIES, read=RETRIES, status=RETRIES,
+        backoff_factor=BACKOFF,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        raise_on_status=False,
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
 
 
 class SnowClient:
@@ -51,6 +72,9 @@ class SnowClient:
     Thin wrapper around Open-Meteo's forecast API.
     Returns raw dicts; SnowService is responsible for interpretation.
     """
+
+    def __init__(self) -> None:
+        self._session = _make_session()
 
     def fetch(self, lat: float, lon: float, past_days: int = 3) -> dict:
         """
@@ -68,7 +92,8 @@ class SnowClient:
             "forecast_days":  8,   # today + 7 days ahead
             "timezone":       "auto",
         }
-        resp = requests.get(BASE_URL, params=params, timeout=REQUEST_TIMEOUT)
+        resp = self._session.get(BASE_URL, params=params,
+                                 timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))
         resp.raise_for_status()
         data = resp.json()
         logger.debug("[client] Fetched Open-Meteo data for (%.4f, %.4f)", lat, lon)

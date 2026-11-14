@@ -26,6 +26,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+import requests
+
 from snowbot.snow.client import SnowClient
 from snowbot.snow.models import (
     ConditionsReport, DailyForecast, ResortLocation, SnowDepthReport, SnowReport,
@@ -37,6 +39,10 @@ from snowbot.snow.snocountry_mock import MockSnoCountryClient
 from snowbot.snow.snotel_client import SnotelClient
 
 logger = logging.getLogger(__name__)
+
+
+# How old a cached report may be and still be served when live data fails
+STALE_MAX_HOURS = 12
 
 
 class SnowService:
@@ -84,7 +90,21 @@ class SnowService:
             logger.debug("[service] Cache hit for %s", location.name)
             return _deserialize_report(cached, location)
 
-        report = self._build_report(location)
+        try:
+            report = self._build_report(location)
+        except requests.RequestException as exc:
+            # Network trouble reaching Open-Meteo: fall back to the most recent
+            # report for this resort if it's recent enough, flagged as stale
+            stale = self._db.get_latest_snow(location.lat, location.lon,
+                                             max_age_hours=STALE_MAX_HOURS)
+            if not stale:
+                raise
+            logger.warning("[service] Live fetch failed for %s (%s) — using cached report from %s",
+                           location.name, exc, stale["fetched_at"])
+            report = _deserialize_report(stale["report_json"], location)
+            report.stale_fetched_at = stale["fetched_at"]
+            report.stale_error = exc
+            return report
 
         self._db.save_cached_snow(
             lat=location.lat,

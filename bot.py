@@ -263,6 +263,13 @@ class Snowbot:
         # Format
         self._db.update_request_formatting_start(db_id)
         thread_posts = self._formatter.format_thread(report)
+        if report.stale_fetched_at:
+            # Live data failed; this is a recent cached report — say so up front
+            thread_posts.insert(0, (
+                f"⚠️ Live snow data isn't reachable right now, so this report is "
+                f"from {_age_text(report.stale_fetched_at)} ago."
+            ))
+
         if resort_selected:
             _append_if_fits(thread_posts, "\n\nReply 'back' for the resort list.")
         _append_latency_footer(thread_posts, request.received_at, self._settings.server_type)
@@ -280,6 +287,11 @@ class Snowbot:
         delivery_started_at = _now()
         result = self._deliver(payload)
         delivery_finished_at = _now()
+
+        # Tell the admin after the user has their reply
+        if report.stale_fetched_at and report.stale_error is not None:
+            self._alert_admin(request, report.stale_error,
+                              "Live snow data failed (sent a cached report)")
 
         for i, text in enumerate(thread_posts):
             self._db.save_response(
@@ -694,6 +706,18 @@ class Snowbot:
 # ---------------------------------------------------------------------------
 
 ADMIN_ALERT_COOLDOWN_SEC = 600
+
+
+def _age_text(iso_utc: str) -> str:
+    """'25 min' / '3 hr' / '3 hr 20 min' since an ISO UTC timestamp."""
+    try:
+        minutes = max(1, int((datetime.utcnow() - datetime.fromisoformat(iso_utc)).total_seconds() // 60))
+    except ValueError:
+        return "a little while"
+    if minutes < 60:
+        return f"{minutes} min"
+    hours, mins = divmod(minutes, 60)
+    return f"{hours} hr" if mins < 5 else f"{hours} hr {mins} min"
 
 
 def _now() -> str:

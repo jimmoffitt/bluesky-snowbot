@@ -349,6 +349,25 @@ class Database:
         ).fetchone()
         return json.loads(row["report_json"]) if row else None
 
+    def get_latest_snow(self, lat: float, lon: float,
+                        max_age_hours: float = 12) -> Optional[dict]:
+        """
+        Most recent cached report for this spot, even if expired, as
+        {"report_json": dict, "fetched_at": iso} — or None if none is recent enough.
+        Used as a fallback when live data can't be fetched.
+        """
+        assert self._conn
+        cutoff = (datetime.utcnow() - timedelta(hours=max_age_hours)).isoformat()
+        row = self._conn.execute(
+            """SELECT report_json, fetched_at FROM snow_cache
+               WHERE lat = ? AND lon = ? AND fetched_at > ?
+               ORDER BY fetched_at DESC LIMIT 1""",
+            (round(lat, 3), round(lon, 3), cutoff),
+        ).fetchone()
+        if not row:
+            return None
+        return {"report_json": json.loads(row["report_json"]), "fetched_at": row["fetched_at"]}
+
     def save_cached_snow(
         self, lat: float, lon: float, display_name: str,
         report_json: dict, ttl_minutes: int = 30,
@@ -582,7 +601,10 @@ class Database:
         )
         results["file_inbox_log"] = cur.rowcount
 
-        cur = self._conn.execute("DELETE FROM snow_cache WHERE expires_at <= ?", (_now(),))
+        # Keep expired reports for a couple of days: they're the fallback when
+        # live data can't be fetched (see get_latest_snow)
+        stale_cutoff = (datetime.utcnow() - timedelta(days=2)).isoformat()
+        cur = self._conn.execute("DELETE FROM snow_cache WHERE fetched_at <= ?", (stale_cutoff,))
         results["snow_cache"] = cur.rowcount
 
         self._conn.commit()
