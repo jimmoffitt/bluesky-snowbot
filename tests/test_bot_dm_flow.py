@@ -384,7 +384,7 @@ def test_midwest_list_is_grouped_by_state_alphabetically(bot):
         ["Michigan", "Minnesota", "Wisconsin"]
     # Resorts indented beneath, "    N Name icon", numbered 1..21 straight through
     numbered = [l for l in lines if re.match(r"    \u2007?\d+ ", l)]
-    assert [int(l.split()[0]) for l in numbered] == list(range(1, 22))
+    assert [int(l.split()[0]) for l in numbered] == list(range(1, 23))
     mi = lines[lines.index("Michigan") + 1 : lines.index("Minnesota")]
     names = [re.sub(r"^    \u2007?\d+ | [❄≈○]$", "", l) for l in mi]
     assert names == sorted(names) and "Boyne Mountain" in names
@@ -445,3 +445,16 @@ def test_padded_number_still_picks_the_resort(bot):
     _dm(bot, "Colorado")
     _dm(bot, "4")
     assert bot.snow_lookups_resolved[-1] == ("Breckenridge", "CO")
+
+
+@pytest.mark.parametrize("text", ["Mt. La Crosse", "mt lacrosse", "Mount La Crosse", "snow at mt la crosse?"])
+def test_mt_la_crosse_resolves(bot, text):
+    _dm(bot, text)
+    assert bot.snow_lookups_resolved[-1] == ("Mt. La Crosse", "WI")
+
+
+def test_mt_la_crosse_in_wisconsin_group(bot):
+    _dm(bot, "midwest")
+    lines = bot.dm.sent[-1].splitlines()
+    wi = lines[lines.index("Wisconsin") + 1:]
+    assert any("Mt. La Crosse" in l for l in wi[:8])

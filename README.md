@@ -1,6 +1,6 @@
 # Snowbot ❄️
 
-An experimental Bluesky bot that answers "how's the snow?" for 109 ski resorts across the US, Canada, Europe, Japan, and New Zealand. Send it a DM with a resort name, or browse resorts by region from a numbered menu. It runs on a Raspberry Pi, so replies can take a little while.
+An experimental Bluesky bot that answers "how's the snow?" for 110 ski resorts across the US, Canada, Europe, Japan, and New Zealand. Send it a DM with a resort name, or browse resorts by region from a numbered menu. It runs on a Raspberry Pi, so replies can take a little while.
 
 **Try it:** [@snowbot.bsky.social](https://bsky.app/profile/snowbot.bsky.social)
 

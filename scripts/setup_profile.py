@@ -29,7 +29,7 @@ from snowbot.config.settings import Settings
 DISPLAY_NAME = "Snowbot ❄️"
 WEBSITE = "https://github.com/jimmoffitt/bluesky-snowbot"
 
-DESCRIPTION = """❄️ Snow reports for 109 ski resorts: US (incl. Midwest), Canada, Europe, Japan, NZ. An experimental bot on a Raspberry Pi, so be patient!
+DESCRIPTION = """❄️ Snow reports for 110 ski resorts: US (incl. Midwest), Canada, Europe, Japan, NZ. An experimental bot on a Raspberry Pi, so be patient!
 
 DM a resort (Vail, Lutsen, Niseko) or "menu".
 
